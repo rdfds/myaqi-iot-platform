@@ -89,11 +89,14 @@ def createIQAirAverage():
 
     for item in data:
         sum += item['aqi']
-
-    average = int(sum / len(data))
-    print(average)
-    iqAirAverage(average)
-    iqAirDelete()
+    try: 
+        average = int(sum / len(data))
+        print(average)
+        iqAirAverage(average)
+        iqAirDelete()
+    
+    except ZeroDivisonError:
+        print()
 
     return "<div></div>"
 
@@ -135,10 +138,14 @@ def createArduinoAverage():
 
     for item in data:
         sum += item['aqi']
+    
+    try:
+        average = int(sum / len(data))
 
-    average = int(sum / len(data))
+        arduinoAverage(average)
+        arduinoDelete()
 
-    arduinoAverage(average)
-    arduinoDelete()
-
+    except ZeroDivisionError:
+        print()
+        
     return "<div></div>"
