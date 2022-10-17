@@ -4,7 +4,7 @@ import requests, json
 
 app = Flask(__name__)
 
-def iqAirAverage(average):
+def outdoorAverage(average):
 
     json_data = {
       "aqi" : average
@@ -13,42 +13,43 @@ def iqAirAverage(average):
     headers = {'content-type': 'application/json'}
 
     r = requests.post(
-    'https://servicedeath.backendless.app/api/data/AverageAPICall', headers=headers, data=json.dumps(json_data)
+    'https://servicedeath.backendless.app/api/data/AverageOutdoorData', headers=headers, data=json.dumps(json_data)
     )
 
 
-def iqAirDelete():
+def outdoorDelete():
 
     headers = {'content-type': 'application/json'}
 
     r = requests.delete(
-    'https://servicedeath.backendless.app/api/data/bulk/APICall', headers=headers
+    'https://servicedeath.backendless.app/api/data/bulk/OutdoorData', headers=headers
 
     )
 
-def arduinoAverage(average):
+def indoorAverage(average):
 
     json_data = {
       "aqi" : average
     }
 
     headers = {'content-type': 'application/json'}
+
     r = requests.post(
-    'https://servicedeath.backendless.app/api/data/AverageArduinoCall', headers=headers, data=json.dumps(json_data)
+    'https://servicedeath.backendless.app/api/data/AverageIndoorData', headers=headers, data=json.dumps(json_data)
     )
 
 
-def arduinoDelete():
+def indoorDelete():
 
     headers = {'content-type': 'application/json'}
 
     r = requests.delete(
-    'https://servicedeath.backendless.app/api/data/bulk/ArduinoCall', headers=headers
+    'https://servicedeath.backendless.app/api/data/bulk/IndoorData', headers=headers
 
     )
 
-@app.route("/api/iqairsend")
-def sendIQAirData():
+@app.route("/api/outdoorsend")
+def sendOutdoorData():
 
     url = "http://api.airvisual.com/v2/nearest_city?"
     payload = {}
@@ -67,20 +68,20 @@ def sendIQAirData():
     }
 
     r = requests.post(
-    'https://servicedeath.backendless.app/api/data/APICall', headers=headers, data=json.dumps(json_data)
+    'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data)
     )
 
     return "<div></div>"
 
 
 
-@app.route("/api/iqairretrieve")
-def createIQAirAverage():
+@app.route("/api/outdoorretrieve")
+def createOutdoorAverage():
 
     headers = {'content-type': 'application/json'}
 
     r = requests.get(
-    'https://servicedeath.backendless.app/api/data/APICall', headers=headers
+    'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers
     )
 
 
@@ -89,21 +90,18 @@ def createIQAirAverage():
 
     for item in data:
         sum += item['aqi']
-    try: 
-        average = int(sum / len(data))
-        print(average)
-        iqAirAverage(average)
-        iqAirDelete()
-    
-    except ZeroDivisonError:
-        print()
+
+    average = int(sum / len(data))
+    print(average)
+    outdoorAverage(average)
+    outdoorDelete()
 
     return "<div></div>"
 
 
 
-@app.route("/api/arduinosend")
-def sendArduinoData():
+@app.route("/api/indoorsend")
+def sendIndoorData():
 
     a = request.args
     currentaqi = a["currentaqi"]
@@ -116,19 +114,19 @@ def sendArduinoData():
     headers = {'content-type': 'application/json'}
 
     r = requests.post(
-    'https://servicedeath.backendless.app/api/data/ArduinoCall', headers=headers, data=json.dumps(json_data)
+    'https://servicedeath.backendless.app/api/data/IndoorCall', headers=headers, data=json.dumps(json_data)
     )
 
     return "<div></div>"
 
 
-@app.route("/api/arduinoretrieve")
-def createArduinoAverage():
+@app.route("/api/indoorretrieve")
+def createIndoorAverage():
 
     headers = {'content-type': 'application/json'}
 
     r = requests.get(
-    'https://servicedeath.backendless.app/api/data/ArduinoCall', headers=headers
+    'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers
     )
 
 
@@ -138,14 +136,10 @@ def createArduinoAverage():
 
     for item in data:
         sum += item['aqi']
-    
-    try:
-        average = int(sum / len(data))
 
-        arduinoAverage(average)
-        arduinoDelete()
+    average = int(sum / len(data))
 
-    except ZeroDivisionError:
-        print()
-        
+    indoorAverage(average)
+    indoorDelete()
+
     return "<div></div>"
