@@ -23,8 +23,8 @@ def outdoorDelete():
 
     r = requests.delete(
     'https://servicedeath.backendless.app/api/data/bulk/OutdoorData', headers=headers
-
     )
+
 
 def indoorAverage(average):
 
@@ -45,12 +45,14 @@ def indoorDelete():
 
     r = requests.delete(
     'https://servicedeath.backendless.app/api/data/bulk/IndoorData', headers=headers
-
     )
+
 
 @app.route("/api/outdoorsend")
 def sendOutdoorData():
 
+    #a = request.args
+    #ID = a["ID"]
     url = "http://api.airvisual.com/v2/nearest_city?"
     payload = {}
     headers = {}
@@ -74,7 +76,6 @@ def sendOutdoorData():
     return "<div></div>"
 
 
-
 @app.route("/api/outdoorretrieve")
 def createOutdoorAverage():
 
@@ -83,7 +84,6 @@ def createOutdoorAverage():
     r = requests.get(
     'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers
     )
-
 
     data = r.json()
     sum = 0
@@ -97,7 +97,6 @@ def createOutdoorAverage():
     outdoorDelete()
 
     return "<div></div>"
-
 
 
 @app.route("/api/indoorsend")
@@ -141,5 +140,105 @@ def createIndoorAverage():
 
     indoorAverage(average)
     indoorDelete()
+
+    return "<div></div>"
+
+
+# ping ur/ with all the things as query parameters
+@app.route("/api/registration")
+def registration():
+
+    a = request.args
+    email = a["email"]
+    firstname = a["firstname"]
+    lastname = a["lastname"]
+    password = a["password"]
+    phone = a["phone"]
+
+    json_data = {
+        "email" : email,
+        "firstName" : firstname,
+        "lastName" : lastname,
+        "password" : password,
+        "username" : username,
+        "phone" : phone
+    }
+
+    headers = {'content-type': 'application/json'}
+
+    r = request.post(
+    'https://servicedeath.backendless.app/api/data/User', headers=headers, data=json.dumps(json_data)
+    )
+
+    return "<div></div>"
+
+
+@app.route("/api/appindoornow")
+def appIndoorNow():
+
+    headers = {'content-type': 'application/json'}
+
+    r = requests.get(
+    'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers
+    )
+
+    json_data = r.json()
+
+    r = request.post(
+    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
+    )
+    return "<div></div>"
+
+
+@app.route("/api/appindoordaily")
+def appIndoorDaily():
+
+    headers = {'content-type': 'application/json'}
+
+    r = requests.get(
+    'https://servicedeath.backendless.app/api/data/AverageIndoorData', headers=headers
+    )
+
+    json_data = r.json()
+
+    r = request.post(
+    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
+    )
+
+    return "<div></div>"
+
+
+@app.route("/api/appoutdoornow")
+def appOutdoorDaily():
+
+    headers = {'content-type': 'application/json'}
+
+    r = requests.get(
+    'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers
+    )
+
+    json_data = r.json()
+
+    r = request.post(
+    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
+    )
+
+    return "<div></div>"
+
+
+@app.route("/api/appoutdoordaily")
+def appOutdoorDaily():
+
+    headers = {'content-type': 'application/json'}
+
+    r = requests.get(
+    'https://servicedeath.backendless.app/api/data/AverageOutdoorData', headers=headers
+    )
+
+    json_data = r.json()
+
+    r = request.post(
+    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
+    )
 
     return "<div></div>"
