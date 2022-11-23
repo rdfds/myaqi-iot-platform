@@ -113,7 +113,7 @@ def sendIndoorData():
     headers = {'content-type': 'application/json'}
 
     r = requests.post(
-    'https://servicedeath.backendless.app/api/data/IndoorCall', headers=headers, data=json.dumps(json_data)
+    'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers, data=json.dumps(json_data)
     )
 
     return "<div></div>"
