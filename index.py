@@ -209,7 +209,7 @@ def appIndoorDaily():
 
 
 @app.route("/api/appoutdoornow")
-def appOutdoorDaily():
+def appOutdoorNow():
 
     headers = {'content-type': 'application/json'}
 
