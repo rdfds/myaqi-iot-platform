@@ -157,8 +157,8 @@ def registration():
 
     json_data = {
         "email" : email,
-        "firstName" : firstname,
-        "lastName" : lastname,
+        "firstname" : firstname,
+        "lastname" : lastname,
         "password" : password,
         "phone" : phone
     }
