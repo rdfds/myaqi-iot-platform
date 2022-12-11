@@ -160,7 +160,6 @@ def registration():
         "firstName" : firstname,
         "lastName" : lastname,
         "password" : password,
-        "username" : username,
         "phone" : phone
     }
 
