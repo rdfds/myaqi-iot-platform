@@ -165,7 +165,7 @@ def registration():
 
     headers = {'content-type': 'application/json'}
 
-    r = request.post(
+    r = requests.post(
     'https://servicedeath.backendless.app/api/data/User', headers=headers, data=json.dumps(json_data)
     )
 
@@ -183,7 +183,7 @@ def appIndoorNow():
 
     json_data = r.json()
 
-    r = request.post(
+    r = requests.post(
     'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
     )
     return "<div></div>"
@@ -200,7 +200,7 @@ def appIndoorDaily():
 
     json_data = r.json()
 
-    r = request.post(
+    r = requests.post(
     'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
     )
 
@@ -218,7 +218,7 @@ def appOutdoorNow():
 
     json_data = r.json()
 
-    r = request.post(
+    r = requests.post(
     'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
     )
 
@@ -236,7 +236,7 @@ def appOutdoorDaily():
 
     json_data = r.json()
 
-    r = request.post(
+    r = requests.post(
     'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
     )
 
