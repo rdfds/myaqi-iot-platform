@@ -90,12 +90,18 @@ def createOutdoorAverage():
 
     for item in data:
         sum += item['aqi']
+    
+    try:
+        
+        average = int(sum / len(data))
+        print(average)
+        outdoorAverage(average)
+        outdoorDelete()
 
-    average = int(sum / len(data))
-    print(average)
-    outdoorAverage(average)
-    outdoorDelete()
-
+    except ZeroDivisionError:
+        
+        print()
+        
     return "<div></div>"
 
 
