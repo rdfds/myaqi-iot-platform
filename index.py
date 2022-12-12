@@ -135,11 +135,15 @@ def createIndoorAverage():
 
     for item in data:
         sum += item['aqi']
-
-    average = int(sum / len(data))
-
-    indoorAverage(average)
-    indoorDelete()
+    
+    try:
+        
+        average = int(sum / len(data))
+        indoorAverage(average)
+        indoorDelete()
+        
+    except ZeroDivisionError:
+        print()
 
     return "<div></div>"
 
