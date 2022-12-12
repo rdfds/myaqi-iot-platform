@@ -76,7 +76,7 @@ def sendOutdoorData():
     return "<div></div>"
 
 
-@app.route("/api/outdoorretrieve")
+@app.route("/api/averageoutdoor")
 def createOutdoorAverage():
 
     headers = {'content-type': 'application/json'}
@@ -119,7 +119,7 @@ def sendIndoorData():
     return "<div></div>"
 
 
-@app.route("/api/indoorretrieve")
+@app.route("/api/averageindoor")
 def createIndoorAverage():
 
     headers = {'content-type': 'application/json'}
@@ -144,7 +144,31 @@ def createIndoorAverage():
     return "<div></div>"
 
 
-# ping ur/ with all the things as query parameters
+@app.route("/api/indoorretrieve")
+def pullIndoorData():
+    
+    headers = {'content-type': 'application/json'}
+
+    r = requests.get(
+    'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers
+    )
+    
+    return "<div></div>"
+    
+    
+@app.route("/api/outdoorretrieve")
+def pullOutdoorData():
+    
+    headers = {'content-type': 'application/json'}
+
+    r = requests.get(
+    'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers
+    )
+    
+    return "<div></div>"
+
+
+# ping url with all the things as query parameters
 @app.route("/api/registration")
 def registration():
 
