@@ -1,4 +1,3 @@
-
 from flask import Flask, request
 import requests, json
 
@@ -90,18 +89,18 @@ def createOutdoorAverage():
 
     for item in data:
         sum += item['aqi']
-    
+
     try:
-        
+
         average = int(sum / len(data))
         print(average)
         outdoorAverage(average)
         outdoorDelete()
 
     except ZeroDivisionError:
-        
+
         print()
-        
+
     return "<div></div>"
 
 
@@ -124,8 +123,8 @@ def sendIndoorData():
         'https://servicedeath.backendless.app/api/data/devices?where=serialNumber='+serialNumber, headers=headers
         )
     except:
-        print("Failed to get device info)
-              
+        print("Failed to get device info")
+
     #get the weather for the location
     weatherData = None
     aqi = None
@@ -133,7 +132,7 @@ def sendIndoorData():
               try:
                 url = "http://api.airvisual.com/v2/nearest_city?"
                 params = {'lat': deviceInfo["latitude"], 'lon': deviceInfo["longitude"], 'key': 'REDACTED_LEGACY_SECRET'}
-                
+
                 weatherData = requests.request("GET", url, params = params)
                 data = json.loads(weatherData.text)
 
@@ -141,7 +140,7 @@ def sendIndoorData():
                 print(type(aqi))
               except:
                 print("Failed to get the weather data for the location of this device", serialnumber)
-              
+
     #Insert data into Outdoor table
     if not weatherData == None:
               try:
@@ -156,20 +155,20 @@ def sendIndoorData():
                 )
               except:
                 print("Failed to insert outdoor data for device", serialnumber)
-              
-     
+
+
     #Insert data into Indoor table
     headers = {'content-type': 'application/json'}
 
     r = requests.post(
     'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers, data=json.dumps(json_data)
     )
-    
+
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
 
     return "<div></div>"
 
-    
+
 
 
 @app.route("/api/averageindoor")
@@ -188,13 +187,13 @@ def createIndoorAverage():
 
     for item in data:
         sum += item['aqi']
-    
+
     try:
-        
+
         average = int(sum / len(data))
         indoorAverage(average)
         indoorDelete()
-        
+
     except ZeroDivisionError:
         print()
 
@@ -203,25 +202,25 @@ def createIndoorAverage():
 
 @app.route("/api/indoorretrieve")
 def pullIndoorData():
-    
+
     headers = {'content-type': 'application/json'}
 
     r = requests.get(
     'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers
     )
-    
+
     return "<div></div>"
-    
-    
+
+
 @app.route("/api/outdoorretrieve")
 def pullOutdoorData():
-    
+
     headers = {'content-type': 'application/json'}
 
     r = requests.get(
     'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers
     )
-    
+
     return "<div></div>"
 
 
