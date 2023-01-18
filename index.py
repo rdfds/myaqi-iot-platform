@@ -110,19 +110,66 @@ def sendIndoorData():
 
     a = request.args
     currentaqi = a["currentaqi"]
+    serialnumber = a["serialnumber"]
     print(type(currentaqi))
 
     json_data = {
-      "aqi" : int(currentaqi)
+      "aqi" : int(currentaqi),
+        "serialNumber": serialnumber
     }
+    #Get the location of this device
+    deviceInfo = None
+    try:
+        deviceInfo = requests.get(
+        'https://servicedeath.backendless.app/api/data/devices?where=serialNumber='+serialNumber, headers=headers
+        )
+    except:
+        print("Failed to get device info)
+              
+    #get the weather for the location
+    weatherData = None
+    aqi = None
+    if not deviceInfo == None:
+              try:
+                url = "http://api.airvisual.com/v2/nearest_city?"
+                params = {'lat': deviceInfo["latitude"], 'lon': deviceInfo["longitude"], 'key': 'REDACTED_LEGACY_SECRET'}
+                
+                weatherData = requests.request("GET", url, params = params)
+                data = json.loads(weatherData.text)
 
+                aqi = data['data']['current']['pollution']['aqius']
+                print(type(aqi))
+              except:
+                print("Failed to get the weather data for the location of this device", serialnumber)
+              
+    #Insert data into Outdoor table
+    if not weatherData == None:
+              try:
+                headers = {'content-type': 'application/json'}
+                json_data = {
+                    "aqi": aqi,
+                    serialNumber: serialnumber
+                }
+
+                r = requests.post(
+                'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data)
+                )
+              except:
+                print("Failed to insert outdoor data for device", serialnumber)
+              
+     
+    #Insert data into Indoor table
     headers = {'content-type': 'application/json'}
 
     r = requests.post(
     'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers, data=json.dumps(json_data)
     )
+    
+    #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
 
     return "<div></div>"
+
+    
 
 
 @app.route("/api/averageindoor")
