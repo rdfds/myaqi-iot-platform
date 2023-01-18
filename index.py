@@ -109,18 +109,15 @@ def sendIndoorData():
 
     a = request.args
     currentaqi = a["currentaqi"]
-    serialnumber = a["serialnumber"]
+    deviceSerialNumber = a["deviceSerialNumber"]
     print(type(currentaqi))
 
-    json_data = {
-      "aqi" : int(currentaqi),
-        "serialNumber": serialnumber
-    }
+    
     #Get the location of this device
     deviceInfo = None
     try:
         deviceInfo = requests.get(
-        'https://servicedeath.backendless.app/api/data/devices?where=serialNumber='+serialNumber, headers=headers
+        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber, headers=headers
         )
     except:
         print("Failed to get device info")
@@ -139,25 +136,30 @@ def sendIndoorData():
                 aqi = data['data']['current']['pollution']['aqius']
                 print(type(aqi))
               except:
-                print("Failed to get the weather data for the location of this device", serialnumber)
+                print("Failed to get the weather data for the location of this device", deviceSerialNumber)
 
     #Insert data into Outdoor table
     if not weatherData == None:
               try:
                 headers = {'content-type': 'application/json'}
-                json_data = {
+                json_data_weather = {
                     "aqi": aqi,
-                    serialNumber: serialnumber
+                    deviceSerialNumber: deviceSerialNumber
                 }
 
                 r = requests.post(
-                'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data)
+                'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data_weather)
                 )
               except:
-                print("Failed to insert outdoor data for device", serialnumber)
+                print("Failed to insert outdoor data for device", deviceSerialNumber)
 
 
     #Insert data into Indoor table
+    
+    json_data = {
+      "aqi" : int(currentaqi),
+        "deviceSerialNumber": deviceSerialNumber
+    }
     headers = {'content-type': 'application/json'}
 
     r = requests.post(
