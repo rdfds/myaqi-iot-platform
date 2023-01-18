@@ -124,6 +124,7 @@ def sendIndoorData():
 
     #get the weather for the location
     weatherData = None
+    weather_response = None
     aqi = None
     if not deviceInfo == None:
               try:
