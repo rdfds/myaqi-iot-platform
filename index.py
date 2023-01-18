@@ -147,7 +147,7 @@ def sendIndoorData():
                     deviceSerialNumber: deviceSerialNumber
                 }
 
-                r = requests.post(
+                weather_response = requests.post(
                 'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data_weather)
                 )
               except:
@@ -168,7 +168,7 @@ def sendIndoorData():
 
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
 
-    return "<div></div>"
+    return { "deviceInfo": deviceInfo, "weather": weatherData, "weatherResponse": weather_response }
 
 
 
