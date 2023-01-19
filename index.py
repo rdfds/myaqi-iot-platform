@@ -87,6 +87,41 @@ def sendIndoorData():
     return { "deviceInfo": deviceInfo, "weather": weatherData, "weatherResponse": weather_response, "indoorDataResponse": r }
 
 
+@app.route("/api/activate")
+def activateDevice:
+    deviceSerialNumber = request.args["deviceSerialNumber"]
+    
+    #Get the location of this device
+    deviceInfo = None
+    try:
+        deviceInfo = requests.get(
+        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber
+        ).json()
+        
+    except Exception as e:
+        print(e)
+        print(str(e))
+        print("Failed to get device info")
+    
+    json_data = {
+        active: True
+    }
+    
+    r = requests.put(
+    'https://servicedeath.backendless.app/api/data/devices/'+deviceInfo[0]["objectId"], headers=headers, data=json.dumps(json_data)
+    ).json()
+    
+    return {"activationReponse": r}
+    
+
+
+@app.route("/api/registerdevice")
+def registerDevice:
+    deviceSerialNumber = request.args["deviceSerialNumber"]
+    userId = request.args["userId"]
+    
+    
+    retun "Register Device"
 
 
 def outdoorAverage(average):
