@@ -88,7 +88,7 @@ def sendIndoorData():
 
 
 @app.route("/api/activate")
-def activateDevice:
+def activateDevice():
     deviceSerialNumber = request.args["deviceSerialNumber"]
     
     #Get the location of this device
@@ -116,7 +116,7 @@ def activateDevice:
 
 
 @app.route("/api/registerdevice")
-def registerDevice:
+def registerDevice():
     deviceSerialNumber = request.args["deviceSerialNumber"]
     userId = request.args["userId"]
     
