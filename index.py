@@ -104,7 +104,7 @@ def activateDevice():
         print("Failed to get device info")
     
     json_data = {
-        active: True
+        "active": True
     }
     
     r = requests.put(
