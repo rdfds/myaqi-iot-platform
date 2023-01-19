@@ -3,6 +3,10 @@ import requests, json
 
 app = Flask(__name__)
 
+@app.route("/")
+def index():
+    return "test"
+
 @app.route("/api/indoorsend")
 def sendIndoorData():
 
@@ -10,35 +14,42 @@ def sendIndoorData():
     currentaqi = a["currentaqi"]
     deviceSerialNumber = a["deviceSerialNumber"]
     print(type(currentaqi))
-
+    print("TEST")
     
     #Get the location of this device
     deviceInfo = None
     print('https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber)
     try:
         deviceInfo = requests.get(
-        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber, headers=headers
-        )
-    except:
+        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber
+        ).json()
+        
+    except Exception as e:
+        print(e)
+        print(str(e))
         print("Failed to get device info")
-
-    #get the weather for the location
+    
+    # #get the weather for the location
+    print(deviceInfo)
     weatherData = None
     weather_response = None
     aqi = None
     
     if not deviceInfo == None:
               try:
-                url = "http://api.airvisual.com/v2/nearest_city?"
-                params = {'lat': deviceInfo["latitude"], 'lon': deviceInfo["longitude"], 'key': 'REDACTED_LEGACY_SECRET'}
+                url = "http://api.airvisual.com/v2/nearest_city"
+                params = {'lat': deviceInfo[0]["latitude"], 'lon': deviceInfo[0]["longitude"], 'key': 'REDACTED_LEGACY_SECRET'}
+                s = requests.Session()
 
-                weatherData = requests.get(url, params = params)
-                print(weatherData.url)
-                data = json.loads(weatherData.text)
+                weatherData = requests.get(url, params = params).json()
+
+                
     
-                aqi = data['data']['current']['pollution']['aqius']
+                aqi = weatherData['data']['current']['pollution']['aqius']
                 print(type(aqi))
-              except:
+              except Exception as e:
+                print(e)
+                print(str(e))
                 print("Failed to get the weather data for the location of this device", deviceSerialNumber)
 
     #Insert data into Outdoor table
@@ -47,17 +58,19 @@ def sendIndoorData():
                 headers = {'content-type': 'application/json'}
                 json_data_weather = {
                     "aqi": aqi,
-                    deviceSerialNumber: deviceSerialNumber
+                    "deviceSerialNumber": deviceSerialNumber
                 }
 
                 weather_response = requests.post(
                 'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data_weather)
-                )
-              except:
+                ).json()
+              except Exception as e:
+                print(e)
+                print(str(e))
                 print("Failed to insert outdoor data for device", deviceSerialNumber)
 
 
-    #Insert data into Indoor table
+    # #Insert data into Indoor table
     
     json_data = {
       "aqi" : int(currentaqi),
@@ -67,7 +80,7 @@ def sendIndoorData():
 
     r = requests.post(
     'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers, data=json.dumps(json_data)
-    )
+    ).json()
 
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
 
