@@ -87,7 +87,7 @@ def sendIndoorData():
     return { "deviceInfo": deviceInfo, "weather": weatherData, "weatherResponse": weather_response, "indoorDataResponse": r }
 
 
-@app.route("/api/activate")
+@app.route("/api/activate", methods=["PUT"])
 def activateDevice():
     deviceSerialNumber = request.args["deviceSerialNumber"]
     
@@ -115,7 +115,7 @@ def activateDevice():
     
 
 
-@app.route("/api/registerdevice")
+@app.route("/api/registerdevice", methods=["PUT"])
 def registerDevice():
     deviceSerialNumber = request.args["deviceSerialNumber"]
     userId = request.args["userId"]
