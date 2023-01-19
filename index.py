@@ -121,7 +121,7 @@ def registerDevice():
     userId = request.args["userId"]
     
     
-    retun "Register Device"
+    return "Register Device"
 
 
 def outdoorAverage(average):
