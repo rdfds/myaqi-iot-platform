@@ -169,7 +169,7 @@ def sendIndoorData():
 
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
 
-    return { "deviceInfo": deviceInfo, "weather": weatherData, "weatherResponse": weather_response }
+    return { "deviceInfo": deviceInfo, "weather": weatherData, "weatherResponse": weather_response, "indoorDataResponse": r }
 
 
 
