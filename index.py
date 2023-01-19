@@ -83,7 +83,7 @@ def sendIndoorData():
     ).json()
 
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
-
+    deleteOlderDataEntries(deviceSerialNumber)
     return { "deviceInfo": deviceInfo, "weather": weatherData, "weatherResponse": weather_response, "indoorDataResponse": r }
 
 
@@ -129,7 +129,16 @@ def registerDevice():
     
     return "Register Device"
 
+def deleteOlderDataEntries(dsn):
+    
+    headers = {'content-type': 'application/json'}
 
+    sensorData = requests.post(
+    'https://servicedeath.backendless.app/api/data/IndoorData?where='+ dsn + '&sortBy=%60created%60%20desc', headers=headers, data=json.dumps(json_data)
+    ).json()
+    
+    return {"sensorData": sensorData}
+    
 def outdoorAverage(average):
 
     json_data = {
