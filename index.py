@@ -153,7 +153,7 @@ def registerDevice():
         'https://servicedeath.backendless.app/api/data/devices/'+deviceInfo[0]["objectId"], data=json.dumps(json_data), headers=headers
         ).json()
         return "Device Registered"
-   except Exception as e:
+    except Exception as e:
         print(e)
         print(str(e))
     
