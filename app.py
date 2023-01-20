@@ -90,7 +90,7 @@ def sendIndoorData():
 
 @app.route("/api/activate", methods=["PUT"])
 def activateDevice():
-    deviceSerialNumber = request.args["deviceSerialNumber"]
+    deviceSerialNumber = request.args["deviceserialnumber"]
     
     #Get the location of this device
     deviceInfo = None
