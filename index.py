@@ -123,9 +123,10 @@ def activateDevice():
 
 
 @app.route("/api/registerdevice", methods=["PUT"])
-def registerDevice():
-    deviceSerialNumber = request.args["deviceSerialNumber"]
-    userId = request.args["userId"]
+def register():
+    
+    deviceSerialNumber = request.args["deviceserialnumber"]
+    userId = request.args["userid"]
     
     #Get the location of this device
     deviceInfo = None
@@ -151,7 +152,9 @@ def registerDevice():
     try:
         r = requests.put(
         'https://servicedeath.backendless.app/api/data/devices/'+deviceInfo[0]["objectId"], data=json.dumps(json_data), headers=headers
-        ).json()
+        )
+        print(r.url)
+        print(r.json())
         return "Device Registered"
     except Exception as e:
         print(e)
