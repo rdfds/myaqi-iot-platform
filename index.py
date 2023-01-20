@@ -127,8 +127,37 @@ def registerDevice():
     deviceSerialNumber = request.args["deviceSerialNumber"]
     userId = request.args["userId"]
     
+    #Get the location of this device
+    deviceInfo = None
+    try:
+        deviceInfo = requests.get(
+        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber
+        ).json()
+        
+    except Exception as e:
+        print(e)
+        print(str(e))
+        print("Failed to get device info")
+    print(deviceInfo)
     
-    return "Register Device"
+    json_data = {
+        "device_owner": userId
+    }
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        r = requests.put(
+        'https://servicedeath.backendless.app/api/data/devices/'+deviceInfo[0]["objectId"], data=json.dumps(json_data), headers=headers
+        ).json()
+        return "Device Registered"
+   except Exception as e:
+        print(e)
+        print(str(e))
+    
+    return "Failed to register device"
 
 def deleteOlderDataEntries(dsn):
     print("Deleting old data...")
