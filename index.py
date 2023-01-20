@@ -145,7 +145,7 @@ def deleteOlderDataEntries(dsn):
         
         mostRecent = sensorData[0]["created"]
         # print(mostRecent)
-        time24HrsAgo = mostRecent/1000 + (5 * 60 * 60) 
+        time24HrsAgo = mostRecent/1000 - (24 * 60 * 60) + (5 * 60 * 60) 
         # print(time24HrsAgo)
         print(time.strftime('%m-%d-%Y %H:%M:%S', time.localtime(mostRecent/1000)))
         time24HrsAgoString = time.strftime('%m-%d-%Y %H:%M:%S', time.localtime(time24HrsAgo))
