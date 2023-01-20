@@ -1,5 +1,7 @@
 from flask import Flask, request
 import requests, json
+import time
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -13,8 +15,7 @@ def sendIndoorData():
     a = request.args
     currentaqi = a["currentaqi"]
     deviceSerialNumber = a["deviceSerialNumber"]
-    print(type(currentaqi))
-    print("TEST")
+    
     
     #Get the location of this device
     deviceInfo = None
@@ -30,7 +31,7 @@ def sendIndoorData():
         print("Failed to get device info")
     
     # #get the weather for the location
-    print(deviceInfo)
+    
     weatherData = None
     weather_response = None
     aqi = None
@@ -83,8 +84,8 @@ def sendIndoorData():
     ).json()
 
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
-
-    return { "deviceInfo": deviceInfo, "weather": weatherData, "weatherResponse": weather_response, "indoorDataResponse": r }
+    sensorData = deleteOlderDataEntries(deviceSerialNumber)
+    return "Done"
 
 
 @app.route("/api/activate", methods=["PUT"])
@@ -129,7 +130,45 @@ def registerDevice():
     
     return "Register Device"
 
+def deleteOlderDataEntries(dsn):
+    print("Deleting old data...")
+    sensorData = None
+    time24HrsAgo = None
+    time24HrsAgoString = None
+    
+    try:
+        sensorData = requests.get(
+        'https://servicedeath.backendless.app/api/data/IndoorData?where=deviceSerialNumber='+ dsn + '&sortBy=%60created%60%20desc'
+        ).json()
 
+        #get first entry
+        
+        mostRecent = sensorData[0]["created"]
+        # print(mostRecent)
+        time24HrsAgo = mostRecent/1000 - (24 * 60 * 60) + (5 * 60 * 60) 
+        # print(time24HrsAgo)
+        print(time.strftime('%m-%d-%Y %H:%M:%S', time.localtime(mostRecent/1000)))
+        time24HrsAgoString = time.strftime('%m-%d-%Y %H:%M:%S', time.localtime(time24HrsAgo))
+        
+    except Exception as e:
+        print(e)    
+        print(str(e))
+
+    if not time24HrsAgo == None:
+
+        try:
+            deleteRequest = requests.delete(
+            'https://servicedeath.backendless.app/api/data/bulk/IndoorData?where=deviceSerialNumber='+ dsn + 'and created<\'' + time24HrsAgoString.replace(":", "%3A") + '\''
+            )
+            print("/data/bulk/IndoorData?where=deviceSerialNumber%3D1000000000%20and%20created%3C'01-19-2023%2012%3A00%3A00'")
+            print(deleteRequest.url)
+            print("############")
+            print(deleteRequest.json())
+        except Exception as e:
+            print(e)
+            print(str(e))
+
+    
 def outdoorAverage(average):
 
     json_data = {
