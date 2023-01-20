@@ -14,7 +14,7 @@ def sendIndoorData():
 
     a = request.args
     currentaqi = a["currentaqi"]
-    deviceSerialNumber = a["deviceSerialNumber"]
+    deviceSerialNumber = a["deviceserialnumber"]
     
     
     #Get the location of this device
