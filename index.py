@@ -144,8 +144,8 @@ def register():
     print(deviceInfo)
     
     json_data = {
-        "device_owner": userId
-        "latitude" : latitude
+        "device_owner": userId,
+        "latitude" : latitude,
         "longitude" : longitude
     }
 
