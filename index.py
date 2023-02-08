@@ -122,7 +122,7 @@ def activateDevice():
     
 
 
-@app.route("/api/registerdevice", methods=["PUT"])
+@app.route("/api/registerdevice", methods=["PUT","GET"])
 def register():
     
     deviceSerialNumber = request.args["deviceserialnumber"]
