@@ -127,6 +127,8 @@ def register():
     
     deviceSerialNumber = request.args["deviceserialnumber"]
     userId = request.args["userid"]
+    latitude = request.args["latitude"]
+    longitude = request.args["longitude"]
     
     #Get the location of this device
     deviceInfo = None
@@ -143,6 +145,8 @@ def register():
     
     json_data = {
         "device_owner": userId
+        "latitude" : latitude
+        "longitude" : longitude
     }
 
     headers = {
