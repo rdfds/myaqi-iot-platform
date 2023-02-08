@@ -392,10 +392,10 @@ def registration():
     'https://servicedeath.backendless.app/api/data/User?where=email%20=%20%27'+email+'%27', headers=headers
     )
     
-    json_data = entry.json();
-    #userID = json_data['objectID']
+    #json_data = entry.json();
+    userID = entry['objectID']
     
-    return jsonify(json_data)
+    return jsonify(userID)
     #return "<div></div>"
 
 
