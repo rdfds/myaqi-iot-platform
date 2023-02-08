@@ -388,14 +388,14 @@ def registration():
     )
     
     #finding the correct entry
-    r = requests.get(   
-    'https://servicedeath.backendless.app/api/data/User?where=email='+email
+    entry = requests.get(   
+    'https://servicedeath.backendless.app/api/data/User?where=userID%20=%20%27'+email+'%27
     )
     
-    json_data = r.json();
+    json_data = entry.json();
     userID = json_data['objectID']
     
-    return jsonify(userID)
+    return jsonify(json_data)
     #return "<div></div>"
 
 
