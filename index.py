@@ -386,9 +386,14 @@ def registration():
     r = requests.post(
     'https://servicedeath.backendless.app/api/data/User', headers=headers, data=json.dumps(json_data)
     )
-
-    #return {"userRegInfo" : r}
-    return "<div></div>"
+    
+    r = requests.get(
+    'https://servicedeath.backendless.app/api/data/User', headers=headers
+    )
+    
+    
+    return {"userRegInfo" : r}
+    #return "<div></div>"
 
 
 @app.route("/api/appindoornow")
