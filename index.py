@@ -394,6 +394,9 @@ def registration():
     
     json_data = json.loads(entry.text)
     
+    for item in json_data:
+        userID = item["objectID"]
+        
     return json_data
     #return "<div></div>"
 
