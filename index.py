@@ -160,6 +160,7 @@ def register():
         print(r.url)
         print(r.json())
         return "Device Registered"
+    
     except Exception as e:
         print(e)
         print(str(e))
@@ -386,7 +387,7 @@ def registration():
     'https://servicedeath.backendless.app/api/data/User', headers=headers, data=json.dumps(json_data)
     )
 
-    return "<div></div>"
+    return {"userRegInfo" : r}
 
 
 @app.route("/api/appindoornow")
