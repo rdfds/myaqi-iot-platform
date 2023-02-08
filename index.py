@@ -383,15 +383,19 @@ def registration():
 
     headers = {'content-type': 'application/json'}
 
-    #r = requests.post(
-    #'https://servicedeath.backendless.app/api/data/User', headers=headers, data=json.dumps(json_data)
-    #)
-    
-    r = requests.get(   
-    'https://servicedeath.backendless.app/api/data/User?email='+email+'&password='+password+'&firstname='+firstname+'&lastname='+lastname+'&phone='+phone
+    r = requests.post(
+    'https://servicedeath.backendless.app/api/data/User', headers=headers, data=json.dumps(json_data)
     )
+    
+    #finding the correct entry
+    r = requests.get(   
+    'https://servicedeath.backendless.app/api/data/User?where=email='+email
+    )
+    
     json_data = r.json();
-    return jsonify(json_data)
+    userID = json_data["objectID"]
+    
+    return jsonify(userID)
     #return "<div></div>"
 
 
