@@ -363,7 +363,7 @@ def pullOutdoorData():
 
 
 # ping url with all the things as query parameters
-@app.route("/api/registration")
+@app.route("/api/registration", methods = ["POST", "GET"])
 def registration():
 
     a = request.args
@@ -389,7 +389,7 @@ def registration():
     
     #finding the correct entry
     entry = requests.get(   
-    'https://servicedeath.backendless.app/api/data/User?where=userID%20=%20%27'+email+'%27'
+    'https://servicedeath.backendless.app/api/data/User?where=email%20=%20%27'+email+'%27'
     )
     
     json_data = entry.json();
