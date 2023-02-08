@@ -393,7 +393,7 @@ def registration():
     )
     
     json_data = r.json();
-    userID = json_data["objectID"]
+    userID = json_data['objectID']
     
     return jsonify(userID)
     #return "<div></div>"
