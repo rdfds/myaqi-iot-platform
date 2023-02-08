@@ -389,7 +389,7 @@ def registration():
     
     #finding the correct entry
     entry = requests.get(   
-    'https://servicedeath.backendless.app/api/data/User?where=userID%20=%20%27'+email+'%27
+    'https://servicedeath.backendless.app/api/data/User?where=userID%20=%20%27'+email+'%27'
     )
     
     json_data = entry.json();
