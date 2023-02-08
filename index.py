@@ -387,12 +387,9 @@ def registration():
     'https://servicedeath.backendless.app/api/data/User', headers=headers, data=json.dumps(json_data)
     )
     
-    r = requests.get(
-    'https://servicedeath.backendless.app/api/data/User', headers=headers
-    )
     
     
-    return {"userRegInfo" : r}
+    return r
     #return "<div></div>"
 
 
