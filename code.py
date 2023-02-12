@@ -14,7 +14,7 @@ import mdns
 
 server = None
 #Setup reset button
-reset_button = DigitalInOut(board.GP22)
+reset_button = DigitalInOut(board.D6)
 reset_button.direction = Direction.INPUT
 reset_button.pull = Pull.UP
 
@@ -24,7 +24,7 @@ buttonPressed = False
 buttonPressTime = None
 
 #setup neopixel status indicator
-pixel_pin = board.GP21
+pixel_pin = board.D5
 num_pixels = 1
 
 pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=0.25, auto_write=False)
