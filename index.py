@@ -126,7 +126,7 @@ def activateDevice():
 def register():
     
     deviceSerialNumber = request.args["deviceserialnumber"]
-    userId = request.args["userid"]
+    device_owner = request.args["device_owner"]
     latitude = request.args["latitude"]
     longitude = request.args["longitude"]
     
@@ -144,7 +144,7 @@ def register():
     print(deviceInfo)
     
     json_data = {
-        "device_owner": userId,
+        "device_owner": device_owner,
         "latitude" : latitude,
         "longitude" : longitude
     }
