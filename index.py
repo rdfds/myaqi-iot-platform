@@ -133,8 +133,9 @@ def register():
     #Get the location of this device
     deviceInfo = None
     try:
+        headers = {"Content-Type": "application/json"}
         deviceInfo = requests.get(
-        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber
+        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber, headers=headers
         ).json()
         
     except Exception as e:
