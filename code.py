@@ -278,13 +278,10 @@ def reset():
     global CONFIG_DATA
     global current_state
     print("Resetting...")
-    try:
-        file = io.open("config.bak", mode="r")
-        CONFIG_DATA = json.load(file)
+    file = io.open("config.bak", mode="r")
+    CONFIG_DATA = json.load(file)
 
-        writeConfigToFile()
-    except Exception as e:
-        print(e)
+    writeConfigToFile()
 
 
     current_state = 3
