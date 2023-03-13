@@ -11,6 +11,18 @@ import time
 import neopixel
 import microcontroller
 import mdns
+import busio
+from adafruit_pm25.i2c import PM25_I2C
+
+### Air Quality Sensor
+reset_pin = None
+
+# For use with microcontroller board:
+# (Connect the sensor TX pin to the board/computer RX pin)
+uart = busio.UART(board.TX, board.RX, baudrate=9600)
+
+# Connect to a PM2.5 sensor over UART
+from adafruit_pm25.uart import PM25_UART
 
 server = None
 #Setup reset button
@@ -18,7 +30,7 @@ reset_button = DigitalInOut(board.D6)
 reset_button.direction = Direction.INPUT
 reset_button.pull = Pull.UP
 
-RESET_HOLD_TIME = 3
+RESET_HOLD_TIME = 10
 
 buttonPressed = False
 buttonPressTime = None
@@ -55,6 +67,11 @@ STATES = [
         'state_description': "The device is resetting for some reason. Either user initiated or some error was encountered"
     }
 ]
+
+AQI_UPDATE_INTERVAL = 10
+last_AQI_Update = -50
+AQI_UPDATE_ADDRESS = "https://myaqifinal.vercel.app/api/indoorsend"
+ACTIVATION_ADDRESS = "https://myaqifinal.vercel.app/api/activate"
 
 def updateStatusLED():
 
@@ -118,7 +135,6 @@ def setupWebServer():
     global CONFIG_DATA
     global server
 
-    #TO DO: TEST TO ENSURE THE INDEX.HTML FILE IS ACTUALLY BEING SERVED
     print("Starting web server...")
 
     import socketpool
@@ -245,16 +261,30 @@ def testRequest():
         print("Error reaching out to the internet")
         addError("Unable to reach the internet", 2)
 
+def registerDevice():
+    response = None
+    try:
+        print(ACTIVATION_ADDRESS+"?serialnumber="+CONFIG_DATA["serial_number"])
+        response = requests.put(ACTIVATION_ADDRESS+"?deviceserialnumber="+CONFIG_DATA["serial_number"])
+        print("Device registered successfully")
+    except:
+
+        print("Error reaching out to the internet")
+        addError("Unable to reach the internet", 2)
+
 
 def reset():
 
     global CONFIG_DATA
     global current_state
     print("Resetting...")
-    file = io.open("config.bak", mode="r")
-    CONFIG_DATA = json.load(file)
+    try:
+        file = io.open("config.bak", mode="r")
+        CONFIG_DATA = json.load(file)
 
-    writeConfigToFile()
+        writeConfigToFile()
+    except Exception as e:
+        print(e)
 
 
     current_state = 3
@@ -295,6 +325,67 @@ def checkResetButton():
         if reset_button.value:
             buttonPressed = False
 
+def getAQI(aqdata):
+
+
+    if (aqdata["pm25 standard"] <= 12.0):
+        AQI25 = (50/12) * (aqdata["pm25 standard"])
+    elif (aqdata["pm25 standard"] <= 35.4):
+        AQI25 = (49/23.3) * (aqdata["pm25 standard"] - 12.1) + 51
+    elif (aqdata["pm25 standard"] <= 55.4):
+        AQI25 = (49/19.9) * (aqdata["pm25 standard"] - 35.5) + 101
+    elif (aqdata["pm25 standard"] <= 150.4):
+        AQI25 = (49/94.9) * (aqdata["pm25 standard"] - 55.5) + 151
+    elif (aqdata["pm25 standard"] <= 250.4):
+        AQI25 = (99/99.9) * (aqdata["pm25 standard"] - 150.5) + 201
+    elif (aqdata["pm25 standard"] <= 350.4):
+        AQI25 = (99/99.9) * (aqdata["pm25 standard"] - 250.5) + 301
+    elif (aqdata["pm25 standard"] <= 500.4):
+        AQI25 = (99/149.9) * (aqdata["pm25 standard"] - 350.5) + 401
+
+    if (aqdata["pm100 standard"] <= 54):
+        AQI100 = (50/54) * (aqdata["pm100 standard"])
+    elif (aqdata["pm100 standard"] <= 154):
+        AQI100 = (49/99) * (aqdata["pm100 standard"] - 55) + 51
+    elif (aqdata["pm100 standard"] <= 254):
+        AQI100 = (49/99) * (aqdata["pm100 standard"] - 155) + 101
+    elif (aqdata["pm100 standard"] <= 354):
+        AQI100 = (49/99) * (aqdata["pm100 standard"] - 255) + 151
+    elif (aqdata["pm100 standard"] <= 424):
+        AQI100 = (99/69) * (aqdata["pm100 standard"] - 355) + 201
+    elif (aqdata["pm100 standard"] <= 504):
+        AQI100 = (99/79) * (aqdata["pm100 standard"] - 425) + 301
+
+    remainder = (AQI25 + AQI100) % 2
+    return int((AQI25 + AQI100) / 2 + remainder)
+
+def updateAQIInfo():
+    print("Updating AQI info...")
+    try:
+        aqdata = pm25.read()
+        airQuality = getAQI(aqdata)
+
+        try:
+            response = requests.get(AQI_UPDATE_ADDRESS+"?currentaqi="+str(airQuality)+"&deviceserialnumber="+CONFIG_DATA["serial_number"])
+            #print(response.json())
+            print(response.text)
+        except Exception as error:
+            print(str(error))
+            print(error)
+        #POST aqiVal to API endpoints
+
+        #print()
+        #print("Concentration Units (standard)")
+        #print("---------------------------------------")
+        #print(
+        #    "PM 1.0: %d\tPM2.5: %d\tPM10: %d"
+        #    % (aqdata["pm10 standard"], aqdata["pm25 standard"], aqdata["pm100 standard"])
+        #)
+        #print("---------------------------------------")
+        #print("AQI:", getAQI(aqdata))
+    except RuntimeError:
+        print("Unable to read from sensor, retrying...")
+
 ################################### START OF PROGRAM ###########################################################
 
 pixels[0] = (255, 0, 0)
@@ -305,6 +396,13 @@ updateStatusLED()
 
 time.sleep(2)
 
+#connect to Air Quality sensor
+try:
+    pm25 = PM25_UART(uart, reset_pin)
+    print("Found PM2.5 sensor, reading data...")
+except Exception as e:
+    print("Unable to connect to PM2.5")
+    print(str(e))
 
 
 CONFIG_DATA = None
@@ -322,7 +420,7 @@ if checkForWifiCredentials():
     # Connect to Wifi
     connectToWifi()
     setupRequests()
-    testRequest()
+    registerDevice()
 
 else:
     # Start Wifi in access point mode
@@ -342,3 +440,6 @@ while True:
 
     updateStatusLED()
 
+    if time.monotonic() > AQI_UPDATE_INTERVAL + last_AQI_Update:
+        last_AQI_Update = time.monotonic()
+        updateAQIInfo()
