@@ -58,7 +58,7 @@ STATES = [
         'state_number': 2,
         'state_name': "Error Mode",
         'state_color': (255, 0, 0),
-        'state_description': "An error has occured and the user should be notified. After resetting the deviec, it should go into AP mode and display the error to the user on the built-in web page"
+        'state_description': "An error has occured and the user should be notified. After resetting the device, it should go into AP mode and display the error to the user on the built-in web page"
     },
     {
         'state_number': 3,
@@ -68,7 +68,7 @@ STATES = [
     }
 ]
 
-AQI_UPDATE_INTERVAL = 10
+AQI_UPDATE_INTERVAL = 600
 last_AQI_Update = -50
 AQI_UPDATE_ADDRESS = "https://myaqifinal.vercel.app/api/indoorsend"
 ACTIVATION_ADDRESS = "https://myaqifinal.vercel.app/api/activate"
@@ -154,7 +154,10 @@ def setupWebServer():
         with HTTPResponse(request, content_type=MIMEType.TYPE_HTML) as response:
             with open("index.html") as f:
                 try:
-                    html = f.read().format("hidden", "TEST TEST STESTSETSETSETSETSET")
+                    if checkForErrors():
+                        html = f.read().format("", CONFIG_DATA["errorMessage"])
+                    else:
+                        html = f.read().format("hidden", "")
                     response.send(html)
                 except Exception as e:
                     print(e)
@@ -170,9 +173,11 @@ def setupWebServer():
 
 
     @server.route("/updateCredentials", adafruit_httpserver.methods.HTTPMethod.POST)
+
     def updateCreds(request: HTTPRequest):
+        print("Updating creds...")
         #print(request.body)
-        #print(request.body.decode("utf-8"))
+        print(request.body.decode("utf-8"))
         ssid = request.body.decode("utf-8").split("&")[0].split("=")[1]
         password = request.body.decode("utf-8").split("&")[1].split("=")[1]
 
@@ -185,8 +190,8 @@ def setupWebServer():
 
 
         response = HTTPResponse(request)
-        response.send("Credentials Updated")
-        #saveConfigFile()
+        response.send("Credentials Updated - Restarting Device...")
+        saveConfigFile()
         time.sleep(5)
         microcontroller.reset()
 
@@ -360,8 +365,9 @@ def updateAQIInfo():
     print("Updating AQI info...")
     try:
         aqdata = pm25.read()
+        print(aqdata)
         airQuality = getAQI(aqdata)
-
+        print(airQuality)
         try:
             response = requests.get(AQI_UPDATE_ADDRESS+"?currentaqi="+str(airQuality)+"&deviceserialnumber="+CONFIG_DATA["serial_number"])
             #print(response.json())
@@ -413,7 +419,7 @@ loadConfigFile()
 #if checkForErrors():
 #    pass
 #else:
-if checkForWifiCredentials():
+if checkForWifiCredentials() and not checkForErrors():
     # Connect to Wifi
     connectToWifi()
     setupRequests()
@@ -433,10 +439,12 @@ while True:
     except:
         pass
 
+
     checkResetButton()
 
     updateStatusLED()
 
-    if time.monotonic() > AQI_UPDATE_INTERVAL + last_AQI_Update:
-        last_AQI_Update = time.monotonic()
-        updateAQIInfo()
+    if current_state == 0:
+        if time.monotonic() > AQI_UPDATE_INTERVAL + last_AQI_Update:
+            last_AQI_Update = time.monotonic()
+            updateAQIInfo()
