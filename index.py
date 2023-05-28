@@ -1,9 +1,17 @@
 from flask import Flask, request, jsonify
+from flask_mail import Mail, Message
 import requests, json
 import time
 from datetime import datetime
 
 app = Flask(__name__)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'myaqimail@example.com'
+app.config['MAIL_PASSWORD'] = 'Masterman!2'
+
+mail = Mail(app)
 
 @app.route("/")
 def index():
@@ -87,7 +95,18 @@ def sendIndoorData():
     sensorData = deleteOlderDataEntries(deviceSerialNumber)
     return "Done"
 
+@app.route('/send-email')
+def send_email():
+    # Create a message object
+    msg = Message('Subject of the Email', sender='myaqimail@example.com', recipients=['rohanvariankaval@gmail.com'])
+    msg.body = 'This is the content of the email.'
 
+    # Send the email
+    with app.app_context():
+        mail.send(msg)
+
+    return 'Email sent'
+    
 @app.route("/api/activate", methods=["PUT"])
 def activateDevice():
     deviceSerialNumber = request.args["deviceserialnumber"]
