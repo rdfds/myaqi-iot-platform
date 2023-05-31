@@ -36,7 +36,8 @@ def sendIndoorData():
     weatherData = None
     weather_response = None
     aqi = None
-    
+    global last_notification_time
+
     if not deviceInfo == None:
               try:
                 url = "http://api.airvisual.com/v2/nearest_city"
@@ -121,7 +122,7 @@ def getPhoneList(deviceSerialNumber):
         
     try:
         data = requests.get(
-        'https://servicedeath.backendless.app/api/data/phonelist?where=email='+email
+        'https://servicedeath.backendless.app/api/data/phonelist?where=email=\''+email + '\''
         ).json()
         phoneList = data[0]
     except Exception as e:
