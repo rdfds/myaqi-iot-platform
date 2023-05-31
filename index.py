@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
 import requests, json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+import smtplib
+app = Flask(__name__)
 
-
+last_notification_time = None
 @app.route("/")
 def index():
     return "test"
@@ -64,6 +66,16 @@ def sendIndoorData():
                 weather_response = requests.post(
                 'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data_weather)
                 ).json()
+                
+                
+
+                if int(aqi) > 200:
+                  current_time = datetime.now()
+                  if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
+                        message = f"Alert: Outdoor AQI is {aqi}. Take necessary precautions!"
+                        sendSMS(deviceSerialNumber, message)
+                        last_notification_time = current_time
+                
               except Exception as e:
                 print(e)
                 print(str(e))
@@ -81,11 +93,126 @@ def sendIndoorData():
     r = requests.post(
     'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers, data=json.dumps(json_data)
     ).json()
-
+    
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
     sensorData = deleteOlderDataEntries(deviceSerialNumber)
+    
+    if int(currentaqi) > 200:
+        current_time = datetime.now()
+
+        if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
+            message = f"Alert: Indoor AQI is {currentaqi}. Take necessary precautions!"
+            sendSMS(deviceSerialNumber, message)
+            last_notification_time = current_time
+            
     return "Done"
 
+def getPhoneList(deviceSerialNumber):
+    try:
+        data = requests.get(
+        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber
+        ).json()
+        email = data[0]["device_owner"]
+    except Exception as e:
+        print(e)
+        print(str(e))
+        email = ""
+        print("Failed to get device info")
+        
+    try:
+        data = requests.get(
+        'https://servicedeath.backendless.app/api/data/phonelist?where=email='+email
+        ).json()
+        phoneList = data[0]
+    except Exception as e:
+        print(e)
+        print(str(e))
+        print("Failed to get device info")
+        phoneList = ""
+        
+    return phoneList
+    
+        
+def sendSMS(deviceSerialNumber, message):
+    phoneList = getPhoneList(deviceSerialNumber)
+    
+    phone1 = phoneList["phone1"]
+    phone2 = phoneList["phone2"]
+    phone3 = phoneList["phone3"]
+    phone4 = phoneList["phone4"]
+    phone5 = phoneList["phone5"]
+    
+            
+    # Twilio API credentials
+    account_sid = 'TWILIO_ACCOUNT_SID_REDACTED'
+    auth_token = 'REDACTED_LEGACY_SECRET'
+    twilio_phone_number = 'REDACTED_PHONE_NUMBER'
+
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+        body=message,
+        from_=twilio_phone_number,
+        to=phone1
+    )
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+        body=message,
+        from_=twilio_phone_number,
+        to=phone2
+    )
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+        body=message,
+        from_=twilio_phone_number,
+        to=phone3
+    )
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+        body=message,
+        from_=twilio_phone_number,
+        to=phone4
+    )
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+        body=message,
+        from_=twilio_phone_number,
+        to=phone5
+    )
+    
+    
+    
+@app.route("/api/sendemail")
+def sendEmail():
+    deviceSerialNumber = 100
+    server = smtplib.SMTP('smtp.gmail.com',587)
+    server.starttls()
+    #server.login('myaqimail@gmail.com','Masterman!2')
+    server.login('rohanvariankaval@gmail.com','Rohan4!5006')
+    server.sendmail('myaqimail@gmail.com',getEmail(deviceSerialNumber), 'The school indoor AQI is very high right now. Please check the myAQI app for more information')
+                    
+                    
+                    
+def getEmail(deviceSerialNumber):
+                    
+    deviceInfo = None
+    try:
+        deviceInfo = requests.get(
+        'https://servicedeath.backendless.app/api/data/devices?where=deviceSerialNumber='+deviceSerialNumber
+        ).json()
+        
+    except Exception as e:
+        print(e)
+        print(str(e))
+        print("Failed to get device info")
+    
+
+    data = deviceInfo.json()
+    
+    email = "rohanvariankaval@gmail.com"
+    for item in data:
+        email = item["owner_id"]
+    
+    return email
 @app.route("/api/activate", methods=["PUT"])
 def activateDevice():
     deviceSerialNumber = request.args["deviceserialnumber"]
@@ -399,7 +526,33 @@ def registration():
     return {"userID" : userID}
     #return "<div></div>"
 
+@app.route("/api/phonelist")
+def phoneList():
+    a = request.args
+    email = a["email"]
+    phone1 = a["phone1"]
+    phone2 = a["phone2"]
+    phone3 = a["phone3"]
+    phone4 = a["phone4"]
+    phone5 = a["phone5"]
+    
+    json_data = {
+        "email" : email,
+        "phone1" : phone1,
+        "phone2" : phone2,
+        "phone3" : phone3,
+        "phone4" : phone4,
+        "phone5" : phone5
+    }
+    headers = {'content-type': 'application/json'}
+    
+    r = requests.post(
+    'https://servicedeath.backendless.app/api/data/PhoneList', headers=headers, data=json.dumps(json_data)
+    )
+    
+    return "<div></div>"
 
+    
 @app.route("/api/appindoornow")
 def appIndoorNow():
 
