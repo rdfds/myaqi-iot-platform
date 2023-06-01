@@ -137,7 +137,7 @@ def getPhoneList(deviceSerialNumber):
         
 def sendSMS(deviceSerialNumber, message):
     phoneList = getPhoneList(deviceSerialNumber)
-    
+    print(phoneList)
     phone1 = phoneList["phone1"]
     phone2 = phoneList["phone2"]
     phone3 = phoneList["phone3"]
@@ -156,24 +156,28 @@ def sendSMS(deviceSerialNumber, message):
         from_=twilio_phone_number,
         to=phone1
     )
+    time.sleep(1)
     client = Client(account_sid, auth_token)
     message = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone2
     )
+    time.sleep(1)
     client = Client(account_sid, auth_token)
     message = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone3
     )
+    time.sleep(1)
     client = Client(account_sid, auth_token)
     message = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone4
     )
+    time.sleep(1)
     client = Client(account_sid, auth_token)
     message = client.messages.create(
         body=message,
