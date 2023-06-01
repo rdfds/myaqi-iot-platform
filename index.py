@@ -151,35 +151,35 @@ def sendSMS(deviceSerialNumber, message):
     twilio_phone_number = 'REDACTED_PHONE_NUMBER'
 
     client = Client(account_sid, auth_token)
-    message = client.messages.create(
+    response1 = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone1
     )
     time.sleep(1)
     client = Client(account_sid, auth_token)
-    message = client.messages.create(
+    response2 = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone2
     )
     time.sleep(1)
     client = Client(account_sid, auth_token)
-    message = client.messages.create(
+    response3 = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone3
     )
     time.sleep(1)
     client = Client(account_sid, auth_token)
-    message = client.messages.create(
+    response4 = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone4
     )
     time.sleep(1)
     client = Client(account_sid, auth_token)
-    message = client.messages.create(
+    response5 = client.messages.create(
         body=message,
         from_=twilio_phone_number,
         to=phone5
