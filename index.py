@@ -160,6 +160,10 @@ def sendSMS(deviceSerialNumber, message):
             )
             time.sleep(1)
 
+    except Exception as e:
+        print(e)
+
+    try:
         if (phone2 != ""):
             client = Client(account_sid, auth_token)
             response2 = client.messages.create(
@@ -169,6 +173,10 @@ def sendSMS(deviceSerialNumber, message):
             )
             time.sleep(1)
 
+    except Exception as e:
+        print(e)
+
+    try:        
         if (phone3 != ""):
             client = Client(account_sid, auth_token)
             response3 = client.messages.create(
@@ -178,6 +186,10 @@ def sendSMS(deviceSerialNumber, message):
             )
             time.sleep(1)
 
+    except Exception as e:
+        print(e)
+
+    try:        
         if (phone4 != ""):     
             client = Client(account_sid, auth_token)
             response4 = client.messages.create(
@@ -186,7 +198,11 @@ def sendSMS(deviceSerialNumber, message):
                 to=phone4
             )
             time.sleep(1)
+    
+    except Exception as e:
+        print(e)
 
+    try:        
         if (phone5 != ""):
             client = Client(account_sid, auth_token)
             response5 = client.messages.create(
@@ -194,6 +210,7 @@ def sendSMS(deviceSerialNumber, message):
                 from_=twilio_phone_number,
                 to=phone5
             )
+    
     except Exception as e:
         print(e)
     
