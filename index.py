@@ -177,7 +177,7 @@ def sendSMS(deviceSerialNumber, message):
         )
         time.sleep(1)
 
-    if (phoen4 != ""):     
+    if (phone4 != ""):     
         client = Client(account_sid, auth_token)
         response4 = client.messages.create(
             body=message,
@@ -193,7 +193,7 @@ def sendSMS(deviceSerialNumber, message):
             from_=twilio_phone_number,
             to=phone5
         )
-        
+
     
     
     
