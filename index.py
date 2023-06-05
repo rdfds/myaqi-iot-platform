@@ -150,40 +150,50 @@ def sendSMS(deviceSerialNumber, message):
     auth_token = 'REDACTED_LEGACY_SECRET'
     twilio_phone_number = 'REDACTED_PHONE_NUMBER'
 
-    client = Client(account_sid, auth_token)
-    response1 = client.messages.create(
-        body=message,
-        from_=twilio_phone_number,
-        to=phone1
-    )
-    time.sleep(1)
-    client = Client(account_sid, auth_token)
-    response2 = client.messages.create(
-        body=message,
-        from_=twilio_phone_number,
-        to=phone2
-    )
-    time.sleep(1)
-    client = Client(account_sid, auth_token)
-    response3 = client.messages.create(
-        body=message,
-        from_=twilio_phone_number,
-        to=phone3
-    )
-    time.sleep(1)
-    client = Client(account_sid, auth_token)
-    response4 = client.messages.create(
-        body=message,
-        from_=twilio_phone_number,
-        to=phone4
-    )
-    time.sleep(1)
-    client = Client(account_sid, auth_token)
-    response5 = client.messages.create(
-        body=message,
-        from_=twilio_phone_number,
-        to=phone5
-    )
+    if (phone1 != ""):
+        client = Client(account_sid, auth_token)
+        response1 = client.messages.create(
+            body=message,
+            from_=twilio_phone_number,
+            to=phone1
+        )
+        time.sleep(1)
+
+    if (phone2 != ""):
+        client = Client(account_sid, auth_token)
+        response2 = client.messages.create(
+            body=message,
+            from_=twilio_phone_number,
+            to=phone2
+        )
+        time.sleep(1)
+
+    if (phone3 != ""):
+        client = Client(account_sid, auth_token)
+        response3 = client.messages.create(
+            body=message,
+            from_=twilio_phone_number,
+            to=phone3
+        )
+        time.sleep(1)
+
+    if (phoen4 != ""):     
+        client = Client(account_sid, auth_token)
+        response4 = client.messages.create(
+            body=message,
+            from_=twilio_phone_number,
+            to=phone4
+        )
+        time.sleep(1)
+
+    if (phone5 != ""):
+        client = Client(account_sid, auth_token)
+        response5 = client.messages.create(
+            body=message,
+            from_=twilio_phone_number,
+            to=phone5
+        )
+        
     
     
     
