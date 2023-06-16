@@ -530,17 +530,20 @@ def registration():
 
     a = request.args
     email = a["email"]
-    firstname = a["firstname"]
-    lastname = a["lastname"]
+    #firstname = a["firstname"]
+    #lastname = a["lastname"]
     password = a["password"]
-    phone = a["phone"]
+    #phone = a["phone"]
+    username = a["username"]
 
     json_data = {
         "email" : email,
-        "firstname" : firstname,
-        "lastname" : lastname,
+        #"firstname" : firstname,
+        #"lastname" : lastname,
         "password" : password,
-        "phone" : phone
+        #"phone" : phone
+        "username" : username
+
     }
 
     headers = {'content-type': 'application/json'}
