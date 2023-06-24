@@ -4,6 +4,8 @@ import time
 from datetime import datetime, timedelta
 import smtplib
 from twilio.rest import Client
+import phonenumbers
+
 app = Flask(__name__)
 
 last_notification_time = None
