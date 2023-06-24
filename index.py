@@ -139,7 +139,7 @@ def getPhoneList(deviceSerialNumber):
 def sendSMS(deviceSerialNumber, message):
     phoneList = getPhoneList(deviceSerialNumber)
     if (phoneList != ""):
-        print("phone list: " + phoneList)
+        #print("phone list: " + phoneList)
         phone1 = phoneList["phone1"]
         phone2 = phoneList["phone2"]
         phone3 = phoneList["phone3"]
