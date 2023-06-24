@@ -142,13 +142,18 @@ def sendSMS(deviceSerialNumber, message):
     phoneList = getPhoneList(deviceSerialNumber)
     if (phoneList != ""):
         #print("phone list: " + phoneList)
-        phone1 = phoneList["phone1"]
-        phone2 = phoneList["phone2"]
-        phone3 = phoneList["phone3"]
-        phone4 = phoneList["phone4"]
-        phone5 = phoneList["phone5"]
+        #phone1 = phoneList["phone1"]
+        #phone2 = phoneList["phone2"]
+        #phone3 = phoneList["phone3"]
+        #phone4 = phoneList["phone4"]
+        #phone5 = phoneList["phone5"]
         
-                
+        phone1 = format_phone_number(phoneList["phone1"])
+        phone2 = format_phone_number(phoneList["phone2"])   
+        phone3 = format_phone_number(phoneList["phone3"])
+        phone4 = format_phone_number(phoneList["phone4"])  
+        phone5 = format_phone_number(phoneList["phone5"])
+
         # Twilio API credentials
         account_sid = 'TWILIO_ACCOUNT_SID_REDACTED'
         auth_token = 'REDACTED_LEGACY_SECRET'
@@ -218,7 +223,10 @@ def sendSMS(deviceSerialNumber, message):
         except Exception as e:
             print(e)
     
-    
+def format_phone_number(number):
+    parsed_number = phonenumbers.parse(number, "IN")  # Second parameter is the default region (IN for India)
+    return phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
+
     
 @app.route("/api/sendemail")
 def sendEmail():
