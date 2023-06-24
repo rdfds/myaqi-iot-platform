@@ -163,7 +163,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
 
         except Exception as e:
-            print("phone list error" + e)
+            print(e)
 
         try:
             if (phone2 != ""):
@@ -176,7 +176,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
 
         except Exception as e:
-            print("phone list error" + e)
+            print(e)
 
         try:        
             if (phone3 != ""):
@@ -189,7 +189,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
 
         except Exception as e:
-            print("phone list error" + e)
+            print(e)
 
         try:        
             if (phone4 != ""):     
@@ -202,7 +202,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
         
         except Exception as e:
-            print("phone list error" + e)
+            print(e)
 
         try:        
             if (phone5 != ""):
@@ -214,7 +214,7 @@ def sendSMS(deviceSerialNumber, message):
                 )
         
         except Exception as e:
-            print("phone list error" + e)
+            print(e)
     
     
     
