@@ -71,7 +71,7 @@ def sendIndoorData():
                 
                 
 
-                if int(aqi) > 200:
+                if int(aqi) > 250:
                   current_time = datetime.now()
                   if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
                         message = f"Alert: Outdoor AQI is {aqi}. Take necessary precautions!"
