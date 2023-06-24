@@ -104,6 +104,7 @@ def sendIndoorData():
 
         if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
             message = f"Alert: Indoor AQI is {currentaqi}. Take necessary precautions!"
+            print("sending sms...")
             sendSMS(deviceSerialNumber, message)
             last_notification_time = current_time
             
@@ -162,7 +163,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
 
         except Exception as e:
-            print(e)
+            print("phone list error" + e)
 
         try:
             if (phone2 != ""):
@@ -175,7 +176,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
 
         except Exception as e:
-            print(e)
+            print("phone list error" + e)
 
         try:        
             if (phone3 != ""):
@@ -188,7 +189,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
 
         except Exception as e:
-            print(e)
+            print("phone list error" + e)
 
         try:        
             if (phone4 != ""):     
@@ -201,7 +202,7 @@ def sendSMS(deviceSerialNumber, message):
                 time.sleep(1)
         
         except Exception as e:
-            print(e)
+            print("phone list error" + e)
 
         try:        
             if (phone5 != ""):
@@ -213,7 +214,7 @@ def sendSMS(deviceSerialNumber, message):
                 )
         
         except Exception as e:
-            print(e)
+            print("phone list error" + e)
     
     
     
