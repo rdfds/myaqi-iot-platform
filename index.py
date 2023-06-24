@@ -225,7 +225,10 @@ def sendSMS(deviceSerialNumber, message):
     
 def format_phone_number(number):
     try:
-        parsed_number = phonenumbers.parse(number, "IN")  # Second parameter is the default region (IN for India)
+        if number[:2] == "91":
+            parsed_number = phonenumbers.parse(number, "IN")  # Second parameter is the default region (IN for India)
+        else:
+            parsed_number = phonenumbers.parse(number, "US")
         return phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
     except Exception as e:
         return ""
