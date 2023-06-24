@@ -165,7 +165,7 @@ def sendSMS(deviceSerialNumber, message):
                 response1 = client.messages.create(
                     body=message,
                     from_=twilio_phone_number,
-                    to="+" + phone1
+                    to=phone1
                 )
                 time.sleep(1)
 
