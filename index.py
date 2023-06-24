@@ -102,12 +102,12 @@ def sendIndoorData():
     if int(currentaqi) > 200:
         current_time = datetime.now()
 
-        if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
-            message = f"Alert: Indoor AQI is {currentaqi}. Take necessary precautions!"
-            print("sending sms...")
-            sendSMS(deviceSerialNumber, message)
-            last_notification_time = current_time
-            
+        #if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
+        message = f"Alert: Indoor AQI is {currentaqi}. Take necessary precautions!"
+        print("sending sms...")
+        sendSMS(deviceSerialNumber, message)
+        last_notification_time = current_time
+        
     return "Done"
 
 def getPhoneList(deviceSerialNumber):
