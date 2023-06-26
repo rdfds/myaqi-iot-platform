@@ -73,7 +73,7 @@ def sendIndoorData():
                 
                 
 
-                if int(aqi) > 250:
+                if int(aqi) > 450:
                   current_time = datetime.now()
                   if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
                         message = f"Alert: Outdoor AQI is {aqi}. Take necessary precautions!"
@@ -101,7 +101,7 @@ def sendIndoorData():
     #check this data table for the oldest entry for the serialNumber. If it's older than 24hrs drop
     sensorData = deleteOlderDataEntries(deviceSerialNumber)
     
-    if int(currentaqi) > 200:
+    if int(currentaqi) > 450:
         current_time = datetime.now()
 
         if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
