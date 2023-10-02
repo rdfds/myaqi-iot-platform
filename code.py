@@ -70,7 +70,7 @@ STATES = [
 
 AQI_UPDATE_INTERVAL = 600
 last_AQI_Update = -50
-AQI_UPDATE_ADDRESS = "https://myaqifinal.vercel.app/api/indoorsend"
+AQI_UPDATE_ADDRESS = "https://myaqifinal.vercel.app/api/senddata"
 ACTIVATION_ADDRESS = "https://myaqifinal.vercel.app/api/activate"
 
 def updateStatusLED():
