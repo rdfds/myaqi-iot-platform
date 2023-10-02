@@ -13,8 +13,8 @@ last_notification_time = None
 def index():
     return "test"
 
-@app.route("/api/indoorsend")
-def sendIndoorData():
+@app.route("/api/senddata")
+def sendData():
 
     a = request.args
     currentaqi = a["currentaqi"]
@@ -48,8 +48,6 @@ def sendIndoorData():
                 s = requests.Session()
 
                 weatherData = requests.get(url, params = params).json()
-
-                
     
                 aqi = weatherData['data']['current']['pollution']['aqius']
                 print(type(aqi))
@@ -59,6 +57,7 @@ def sendIndoorData():
                 print("Failed to get the weather data for the location of this device", deviceSerialNumber)
 
     #Insert data into Outdoor table
+    
     if not weatherData == None:
               try:
                 headers = {'content-type': 'application/json'}
@@ -71,8 +70,6 @@ def sendIndoorData():
                 'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers, data=json.dumps(json_data_weather)
                 ).json()
                 
-                
-
                 if int(aqi) > 450:
                   current_time = datetime.now()
                   if last_notification_time is None or current_time - last_notification_time >= timedelta(hours=3):
@@ -86,7 +83,7 @@ def sendIndoorData():
                 print("Failed to insert outdoor data for device", deviceSerialNumber)
 
 
-    # #Insert data into Indoor table
+    #Insert data into Indoor table
     
     json_data = {
       "aqi" : int(currentaqi),
@@ -605,75 +602,4 @@ def phoneList():
     'https://servicedeath.backendless.app/api/data/PhoneList', headers=headers, data=json.dumps(json_data)
     )
     
-    return "<div></div>"
-
-    
-@app.route("/api/appindoornow")
-def appIndoorNow():
-
-    headers = {'content-type': 'application/json'}
-
-    r = requests.get(
-    'https://servicedeath.backendless.app/api/data/IndoorData', headers=headers
-    )
-
-    json_data = r.json()
-
-    r = requests.post(
-    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
-    )
-    return "<div></div>"
-
-
-@app.route("/api/appindoordaily")
-def appIndoorDaily():
-
-    headers = {'content-type': 'application/json'}
-
-    r = requests.get(
-    'https://servicedeath.backendless.app/api/data/AverageIndoorData', headers=headers
-    )
-
-    json_data = r.json()
-
-    r = requests.post(
-    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
-    )
-
-    return "<div></div>"
-
-
-@app.route("/api/appoutdoornow")
-def appOutdoorNow():
-
-    headers = {'content-type': 'application/json'}
-
-    r = requests.get(
-    'https://servicedeath.backendless.app/api/data/OutdoorData', headers=headers
-    )
-
-    json_data = r.json()
-
-    r = requests.post(
-    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
-    )
-
-    return "<div></div>"
-
-
-@app.route("/api/appoutdoordaily")
-def appOutdoorDaily():
-
-    headers = {'content-type': 'application/json'}
-
-    r = requests.get(
-    'https://servicedeath.backendless.app/api/data/AverageOutdoorData', headers=headers
-    )
-
-    json_data = r.json()
-
-    r = requests.post(
-    'XXXXXXXXXXXXXX', headers=headers, data=json.dumps(json_data)
-    )
-
     return "<div></div>"
