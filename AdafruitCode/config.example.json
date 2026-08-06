@@ -1,0 +1,13 @@
+{
+  "errorCode": 0,
+  "timezone": "America/New_York",
+  "errorMessage": "",
+  "test": "test",
+  "AP_PASSWORD": "change-me",
+  "serial_number": "",
+  "AP_SSID": "myAQI",
+  "aio_key": "",
+  "ssid": "",
+  "password": "",
+  "aio_username": ""
+}

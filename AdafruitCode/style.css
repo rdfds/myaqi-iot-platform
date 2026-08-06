@@ -1,0 +1,176 @@
+body {
+    background-color: rgb(255, 128, 0);
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Roboto', sans-serif;
+    background-image: linear-gradient(to top left, rgb(41, 202, 238), rgb(178, 3, 253));
+}
+
+#main-content {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    align-items: stretch;
+    /* padding: 10px; */
+    width: 400px;
+    border-radius: 10px;
+}
+
+#main-content>*:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#header {
+    flex: 0 0 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* background-color: blue; */
+}
+
+#header span {
+    /* background-color: lightseagreen; */
+    font-size: 1.5rem;
+    font-weight: 900;
+}
+
+#error-message-wrapper {
+
+    background-color: red;
+    flex: 1 1 auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#error-message-wrapper #error-header {
+
+    /* background-color: aqua; */
+    flex: 1 1 auto;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+#error-message-wrapper #error-message {
+
+    /* background-color: rgb(84, 2, 147); */
+    flex: 1 1 auto;
+    font-weight: 300;
+    font-size: .95rem;
+}
+
+#form-wrapper {
+
+    flex: 0 0 200px;
+    /* background-color: aqua; */
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+}
+
+#form-wrapper>*:not(:last-child) {
+
+    /* margin-bottom: 5px; */
+}
+
+
+#instructions-wrapper {
+    flex: 0 0 auto;
+    background-color: rgb(41, 202, 238);
+    padding: 10px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#instructions-wrapper #instructions-header {
+
+    flex: 0 0 auto;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 1.1rem;
+
+}
+
+#instructions-wrapper #instructions-content {
+
+    flex: 1 1 auto;
+    font-weight: 300;
+    font-size: .95rem;
+
+}
+
+#form-wrapper form {
+
+    display: flex;
+    flex-direction: column;
+    /* background-color: darkgreen; */
+    padding: 5px;
+    width: 70%;
+    align-items: center;
+}
+
+#form-wrapper form>*:not(:last-child) {}
+
+#form-wrapper form input:not([type=submit]) {
+
+    height: 40px;
+    flex: 1 1 auto;
+    width: 100%;
+    border: none;
+    margin-bottom: 20px;
+    background: none;
+    border-bottom: solid 2px rgba(128, 128, 128, 0.246);
+    font-size: 1rem;
+}
+
+#form-wrapper form label {
+    align-self: flex-start;
+    /* background-color: rgb(255, 0, 162); */
+
+    font-size: .7rem;
+}
+
+#form-wrapper form input[type=submit] {
+
+    flex: 1 1 auto;
+    height: 30px;
+    width: 100%;
+    border-radius: 15px;
+    border: none;
+    background-color: rgb(178, 3, 253);
+    color: white;
+    font-size: .9rem;
+    font-weight: bold;
+
+}
+
+#contact-us {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* background-color: brown; */
+    padding: 10px;
+    margin-top: 40px;
+}
+
+#contact-us a {
+
+    text-decoration: none;
+    color: grey;
+    font-size: .85rem;
+}

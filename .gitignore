@@ -1,0 +1,10 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+AdafruitCode/config.json
+AdafruitCode/config.bak
