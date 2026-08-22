@@ -4,6 +4,8 @@
 
 An end-to-end indoor air-quality monitoring platform for school deployments. CircuitPython firmware reads particulate-matter sensors, provisions Wi-Fi locally, reports device health, and sends measurements to a Flask backend. The backend combines indoor and outdoor readings and can notify configured contacts when conditions cross alert thresholds.
 
+> **Public showcase:** This sanitized snapshot was published in August 2026 from a system developed and deployed during 2021–2024. Public commit dates reflect showcase preparation; deployment credentials and private configuration remain excluded.
+
 ## Why this project matters
 
 This is a physical-systems project: the interesting work is not only reading a sensor, but recovering from unreliable connectivity, making device state observable, provisioning devices without a developer laptop, and keeping alerts useful when data is incomplete.
