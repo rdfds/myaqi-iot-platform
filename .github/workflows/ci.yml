@@ -38,7 +38,7 @@ jobs:
       - name: Install backend and test tools
         run: pip install -e "backend[dev]"
       - name: Lint
-        run: ruff check backend firmware_tests AdafruitCode/myaqi_client.py --config backend/pyproject.toml
+        run: ruff check backend firmware_tests soak AdafruitCode/myaqi_client.py --config backend/pyproject.toml
       - name: Apply migrations
         working-directory: backend
         run: alembic upgrade head
@@ -46,6 +46,6 @@ jobs:
         working-directory: backend
         run: pytest --cov=myaqi_backend --cov-report=term-missing --cov-report=xml --cov-fail-under=85
       - name: Test firmware ingestion client
-        run: pytest firmware_tests
+        run: pytest firmware_tests soak/tests
       - name: Compile firmware and archived adapter
         run: python -m py_compile AdafruitCode/boot.py AdafruitCode/code.py AdafruitCode/myaqi_client.py legacy/backendless-prototype/index.py
