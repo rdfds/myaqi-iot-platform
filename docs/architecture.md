@@ -1,26 +1,43 @@
 # System architecture
 
-## Runtime flow
+## Context
 
-1. The CircuitPython device starts and reads its local configuration.
-2. If Wi-Fi credentials are missing or invalid, the device enters access-point mode and serves a local setup page.
-3. With valid credentials, the device connects to Wi-Fi, registers its serial number, reads the PM2.5 sensor, computes an AQI value, and sends the reading to the Flask API.
-4. The backend resolves device metadata, stores indoor readings, fetches an outdoor AQI value, and stores the outdoor reading.
-5. Threshold checks can send SMS alerts to configured contacts through Twilio.
+myAQI contains two explicit system generations. The historical generation paired CircuitPython devices with provider-specific Flask routes. The reference generation keeps the device concerns but replaces the backend boundary with durable, authenticated batch ingestion.
 
-## Boundaries
+## Reference runtime flow
+
+1. A device buffers readings locally and assigns each reading a monotonic sequence number.
+2. It sends up to 500 readings with a stable idempotency key and an HMAC signature over the exact request.
+3. The API authenticates the active device, validates the complete batch, and reserves the idempotency key.
+4. PostgreSQL inserts unseen `(device_id, sequence)` rows and ignores sequences already committed by an earlier retry.
+5. The API stores its response and a `measurements.ingested` outbox event in the same transaction.
+6. One of several workers claims available events with `FOR UPDATE SKIP LOCKED` and hands them to a downstream adapter.
+7. Failed handoffs retry with backoff. Exhausted events remain in a dead-letter state for operator review.
+
+## Boundaries and failure behavior
 
 | Component | Responsibility | Failure behavior |
 | --- | --- | --- |
-| CircuitPython firmware | Sensor reads, provisioning, device state, upload loop | Persist an error, show state through the LED, and return to setup mode when recovery is required |
-| Flask backend | Ingestion, provider calls, aggregation, retention, alerts | Log provider failures and skip incomplete alert paths rather than storing credentials in code |
-| Data store | Device metadata and indoor/outdoor measurements | External dependency; deployment must supply credentials and access controls |
-| AQI provider | Outdoor context | A failed provider call does not prevent the device from reporting its indoor reading |
-| Twilio | Optional SMS delivery | Missing configuration disables SMS delivery with a warning |
+| CircuitPython firmware | Sensor reads, provisioning, buffering, sequence assignment | Retain buffered readings and reuse the same request identity until acknowledged |
+| Ingestion API | Authentication, validation, idempotency, persistence | Reject the entire invalid batch; never acknowledge before commit |
+| PostgreSQL | Source of truth for devices, requests, readings, and outbox | Unique constraints enforce both deduplication layers under concurrency |
+| Outbox worker | Durable downstream handoff | Exclusive claims, stale-lock recovery, bounded retry, dead-letter state |
+| Downstream publisher | Alerts, queues, or analytics | May fail without rolling back already accepted sensor data |
+| Prometheus/log collector | Operational visibility | Telemetry failure does not alter ingestion correctness |
 
-## Design choices
+## Data model
 
-- Provisioning is local and device-led so a new unit does not require a developer laptop.
-- Device state is explicit (`Normal`, setup/AP mode, error, and resetting) so failures are visible to a person standing near the hardware.
-- Provider credentials are environment-only; example files contain placeholders.
-- The public repository is a sanitized demonstration. The deployed system used additional client and operational components that are intentionally not included here.
+- `devices`: active device identities and key versions
+- `ingest_requests`: immutable `(device, idempotency key, payload hash)` records plus the committed response
+- `measurements`: sensor observations unique by `(device, sequence)`
+- `outbox_events`: downstream work with claim, retry, and publication state
+
+## Transaction boundaries
+
+The ingestion transaction includes the idempotency reservation, unseen measurements, response body, and outbox event. This avoids the dual-write failure where data commits but the alert event is lost, or the event publishes for data that later rolls back.
+
+Workers use a separate transaction to claim rows, perform external work without holding database locks, and then use a short ownership-checked transaction to mark success or failure.
+
+## Deployment topology
+
+`compose.yaml` is a reproducible local topology, not a production platform recommendation. A deployment should run migrations as a release step, place API instances behind TLS, use managed PostgreSQL, export metrics and logs, and replace the logging publisher with an explicit downstream adapter.

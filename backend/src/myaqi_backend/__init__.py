@@ -1,0 +1,5 @@
+"""myAQI reference backend."""
+
+from myaqi_backend.app import create_app
+
+__all__ = ["create_app"]

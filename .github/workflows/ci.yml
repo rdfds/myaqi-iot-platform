@@ -8,12 +8,42 @@ permissions:
   contents: read
 
 jobs:
-  python-syntax:
+  backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: myaqi_test
+          POSTGRES_USER: myaqi
+          POSTGRES_PASSWORD: myaqi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U myaqi -d myaqi_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://myaqi:myaqi_test@localhost:5432/myaqi_test
+      TEST_DATABASE_URL: postgresql+psycopg://myaqi:myaqi_test@localhost:5432/myaqi_test
+      DEVICE_MASTER_KEY: ci-only-device-master-key-with-32-characters
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile backend
-        run: python -m py_compile WebServer/index.py
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install backend and test tools
+        run: pip install -e "backend[dev]"
+      - name: Lint
+        run: ruff check backend
+      - name: Apply migrations
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Test backend
+        working-directory: backend
+        run: pytest --cov=myaqi_backend --cov-report=term-missing --cov-report=xml --cov-fail-under=85
+      - name: Compile historical firmware and backend
+        run: python -m py_compile AdafruitCode/boot.py AdafruitCode/code.py WebServer/index.py
