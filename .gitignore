@@ -8,3 +8,11 @@ __pycache__/
 *.py[cod]
 AdafruitCode/config.json
 AdafruitCode/config.bak
+backend/*.db
+backend/benchmark-devices.json
+benchmark-devices.json
+.coverage
+coverage.xml
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
