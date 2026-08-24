@@ -105,8 +105,15 @@ def test_flush_signs_exact_body_and_removes_acknowledged_readings(tmp_path) -> N
     assert result == {"accepted": 2, "duplicates": 0, "remaining": 0}
     assert client.pending_count == 0
     assert session.calls[0]["headers"]["Idempotency-Key"] == "myaqi-batch-school-001-1-2"
+    assert session.calls[0]["headers"]["X-Firmware-Version"] == "2026.08.24+ops1"
     assert session.responses[0].closed is True
     assert JsonStateStore(str(tmp_path / "state.json")).load()["pending"] == []
+
+    diagnostics = client.diagnostics()
+    assert diagnostics["upload_attempts"] == 1
+    assert diagnostics["upload_failures"] == 0
+    assert diagnostics["last_http_status"] == 202
+    assert diagnostics["last_acknowledged_sequence"] == 2
 
 
 def test_failed_upload_keeps_reading_for_next_boot(tmp_path) -> None:
@@ -122,6 +129,9 @@ def test_failed_upload_keeps_reading_for_next_boot(tmp_path) -> None:
     reloaded = make_client(tmp_path, session)
     assert reloaded.pending_count == 1
     assert reloaded.state["pending"][0]["sequence"] == 1
+    assert reloaded.diagnostics()["upload_attempts"] == 1
+    assert reloaded.diagnostics()["upload_failures"] == 1
+    assert reloaded.diagnostics()["last_http_status"] == 503
 
 
 def test_duplicate_acknowledgement_clears_retried_reading(tmp_path) -> None:
@@ -176,7 +186,10 @@ def test_state_store_recovers_last_complete_backup(tmp_path) -> None:
     store.save(second)
     (tmp_path / "state.json").write_text("not-json", encoding="utf-8")
 
-    assert store.load() == first
+    recovered = store.load()
+    assert recovered["next_sequence"] == first["next_sequence"]
+    assert recovered["pending"] == first["pending"]
+    assert recovered["dropped_readings"] == first["dropped_readings"]
 
 
 def test_state_store_rejects_non_object_state(tmp_path) -> None:

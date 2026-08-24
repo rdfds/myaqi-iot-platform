@@ -7,7 +7,16 @@ import os
 import time
 
 SHA256_BLOCK_SIZE = 64
-DEFAULT_STATE = {"next_sequence": 1, "pending": [], "dropped_readings": 0}
+FIRMWARE_VERSION = "2026.08.24+ops1"
+DEFAULT_STATE = {
+    "next_sequence": 1,
+    "pending": [],
+    "dropped_readings": 0,
+    "upload_attempts": 0,
+    "upload_failures": 0,
+    "last_http_status": None,
+    "last_acknowledged_sequence": None,
+}
 
 
 class UploadError(Exception):
@@ -105,6 +114,25 @@ class JsonStateStore:
             or dropped_readings < 0
         ):
             raise ValueError("Invalid dropped_readings")
+        for field in ("upload_attempts", "upload_failures"):
+            counter = value.setdefault(field, 0)
+            if isinstance(counter, bool) or not isinstance(counter, int) or counter < 0:
+                raise ValueError("Invalid " + field)
+        last_http_status = value.setdefault("last_http_status", None)
+        if last_http_status is not None and (
+            isinstance(last_http_status, bool)
+            or not isinstance(last_http_status, int)
+            or not 100 <= last_http_status <= 599
+        ):
+            raise ValueError("Invalid last_http_status")
+        last_acknowledged = value.setdefault("last_acknowledged_sequence", None)
+        if last_acknowledged is not None and (
+            isinstance(last_acknowledged, bool)
+            or not isinstance(last_acknowledged, int)
+            or last_acknowledged < 1
+            or last_acknowledged >= next_sequence
+        ):
+            raise ValueError("Invalid last_acknowledged_sequence")
         return value
 
     def load(self):
@@ -121,11 +149,7 @@ class JsonStateStore:
                 continue
         if found_state_file:
             raise ValueError("No valid ingestion state file remains")
-        return {
-            "next_sequence": DEFAULT_STATE["next_sequence"],
-            "pending": [],
-            "dropped_readings": 0,
-        }
+        return dict(DEFAULT_STATE)
 
     @staticmethod
     def _remove_if_present(path):
@@ -170,6 +194,7 @@ class MyAQIClient:
         batch_size=20,
         max_pending=120,
         time_fn=None,
+        firmware_version=FIRMWARE_VERSION,
     ):
         normalized_url = api_base_url.rstrip("/")
         is_https_origin = normalized_url.startswith("https://")
@@ -201,11 +226,46 @@ class MyAQIClient:
         self.batch_size = batch_size
         self.max_pending = max_pending
         self.time_fn = time_fn or time.time
+        self.firmware_version = firmware_version
         self.state = state_store.load()
 
     @property
     def pending_count(self):
         return len(self.state["pending"])
+
+    def diagnostics(self):
+        pending = self.state["pending"]
+        return {
+            "firmware_version": self.firmware_version,
+            "next_sequence": self.state["next_sequence"],
+            "pending_readings": len(pending),
+            "oldest_pending_sequence": pending[0]["sequence"] if pending else None,
+            "newest_pending_sequence": pending[-1]["sequence"] if pending else None,
+            "dropped_readings": self.state["dropped_readings"],
+            "upload_attempts": self.state["upload_attempts"],
+            "upload_failures": self.state["upload_failures"],
+            "last_http_status": self.state["last_http_status"],
+            "last_acknowledged_sequence": self.state["last_acknowledged_sequence"],
+        }
+
+    def _operational_state(self):
+        return {
+            "upload_attempts": self.state["upload_attempts"],
+            "upload_failures": self.state["upload_failures"],
+            "last_http_status": self.state["last_http_status"],
+            "last_acknowledged_sequence": self.state["last_acknowledged_sequence"],
+        }
+
+    def _record_upload_failure(self, status):
+        next_state = dict(self.state)
+        next_state["upload_attempts"] += 1
+        next_state["upload_failures"] += 1
+        next_state["last_http_status"] = status
+        try:  # noqa: SIM105 - contextlib is not guaranteed on CircuitPython.
+            self.state_store.save(next_state)
+        except OSError:
+            pass
+        self.state = next_state
 
     def enqueue(self, pm25_ug_m3, observed_at=None):
         concentration = float(pm25_ug_m3)
@@ -226,6 +286,7 @@ class MyAQIClient:
             "next_sequence": self.state["next_sequence"] + 1,
             "pending": next_pending,
             "dropped_readings": dropped_readings,
+            **self._operational_state(),
         }
         self.state_store.save(next_state)
         self.state = next_state
@@ -265,6 +326,7 @@ class MyAQIClient:
                 path,
                 body,
             ),
+            "X-Firmware-Version": self.firmware_version,
         }
 
         response = None
@@ -283,18 +345,26 @@ class MyAQIClient:
             acknowledged = int(result.get("accepted", 0)) + int(result.get("duplicates", 0))
             if acknowledged != len(batch):
                 raise UploadError("Ingestion acknowledgement did not cover the batch")
-
-            next_state = {
-                "next_sequence": self.state["next_sequence"],
-                "pending": self.state["pending"][len(batch) :],
-                "dropped_readings": self.state["dropped_readings"],
-            }
-            self.state_store.save(next_state)
-            self.state = next_state
-            result["remaining"] = len(next_state["pending"])
-            return result
+        except Exception:
+            status = response.status_code if response is not None else None
+            self._record_upload_failure(status)
+            raise
         finally:
             self._close_response(response)
+
+        next_state = {
+            "next_sequence": self.state["next_sequence"],
+            "pending": self.state["pending"][len(batch) :],
+            "dropped_readings": self.state["dropped_readings"],
+            "upload_attempts": self.state["upload_attempts"] + 1,
+            "upload_failures": self.state["upload_failures"],
+            "last_http_status": response.status_code,
+            "last_acknowledged_sequence": last_sequence,
+        }
+        self.state_store.save(next_state)
+        self.state = next_state
+        result["remaining"] = len(next_state["pending"])
+        return result
 
     def flush(self, max_batches=3):
         result = {"accepted": 0, "duplicates": 0, "remaining": self.pending_count}

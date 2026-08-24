@@ -258,6 +258,7 @@ def setupIngestionClient():
         max_pending=CONFIG_DATA.get("max_buffered_readings", 120),
     )
     print("Buffered readings:", ingestion_client.pending_count)
+    print("MYAQI_DIAGNOSTIC", json.dumps(ingestion_client.diagnostics()))
     if clock_synchronized:
         try:
             result = ingestion_client.flush(max_batches=3)
@@ -438,6 +439,7 @@ def updateAQIInfo():
                     print("Clock resynchronization failed:", str(clock_error))
         except Exception as error:
             print("Reading remains buffered:", str(error))
+        print("MYAQI_DIAGNOSTIC", json.dumps(ingestion_client.diagnostics()))
 
         #print()
         #print("Concentration Units (standard)")
