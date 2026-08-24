@@ -121,3 +121,14 @@ variable "log_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "alarm_email" {
+  description = "Optional email endpoint for operational alarms; subscription requires confirmation."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.alarm_email == null || can(regex("^[^@]+@[^@]+\\.[^@]+$", var.alarm_email))
+    error_message = "alarm_email must be null or a valid email address."
+  }
+}

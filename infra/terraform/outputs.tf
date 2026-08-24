@@ -68,3 +68,13 @@ output "outbox_topic_arn" {
   description = "SNS topic receiving published outbox events."
   value       = aws_sns_topic.outbox.arn
 }
+
+output "alarm_topic_arn" {
+  description = "SNS topic for CloudWatch alarm notifications."
+  value       = aws_sns_topic.alarms.arn
+}
+
+output "operations_dashboard" {
+  description = "CloudWatch operations dashboard name."
+  value       = aws_cloudwatch_dashboard.operations.dashboard_name
+}
