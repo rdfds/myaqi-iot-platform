@@ -3,7 +3,34 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from sqlalchemy.engine import URL
+
 DEVELOPMENT_MASTER_KEY = "development-only-change-this-key-before-deploying"
+
+
+def database_url_from_env() -> str:
+    explicit = os.getenv("DATABASE_URL")
+    if explicit:
+        return explicit
+    components = {
+        "host": os.getenv("DB_HOST"),
+        "name": os.getenv("DB_NAME"),
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
+    }
+    if any(components.values()):
+        missing = [name for name, value in components.items() if not value]
+        if missing:
+            raise ValueError("Incomplete database configuration: " + ", ".join(missing))
+        return URL.create(
+            "postgresql+psycopg",
+            username=components["user"],
+            password=components["password"],
+            host=components["host"],
+            port=int(os.getenv("DB_PORT", "5432")),
+            database=components["name"],
+        ).render_as_string(hide_password=False)
+    return "sqlite+pysqlite:///myaqi-development.db"
 
 
 @dataclass(frozen=True)
@@ -26,10 +53,7 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         return cls(
-            database_url=os.getenv(
-                "DATABASE_URL",
-                "sqlite+pysqlite:///myaqi-development.db",
-            ),
+            database_url=database_url_from_env(),
             device_master_key=os.getenv("DEVICE_MASTER_KEY", DEVELOPMENT_MASTER_KEY),
             auth_clock_skew_seconds=int(os.getenv("AUTH_CLOCK_SKEW_SECONDS", "300")),
             max_batch_size=int(os.getenv("MAX_BATCH_SIZE", "500")),
