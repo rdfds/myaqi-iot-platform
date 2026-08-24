@@ -17,6 +17,9 @@ class Settings:
     outbox_max_attempts: int
     outbox_lock_timeout_seconds: int
     log_level: str
+    environment: str
+    service_version: str
+    revision: str
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -33,6 +36,9 @@ class Settings:
             outbox_max_attempts=int(os.getenv("OUTBOX_MAX_ATTEMPTS", "8")),
             outbox_lock_timeout_seconds=int(os.getenv("OUTBOX_LOCK_TIMEOUT_SECONDS", "60")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
+            environment=os.getenv("APP_ENVIRONMENT", "development"),
+            service_version=os.getenv("SERVICE_VERSION", "0.1.0-dev"),
+            revision=os.getenv("APP_REVISION", "local"),
         )
 
     def as_flask_config(self) -> dict[str, object]:
@@ -46,4 +52,7 @@ class Settings:
             "OUTBOX_MAX_ATTEMPTS": self.outbox_max_attempts,
             "OUTBOX_LOCK_TIMEOUT_SECONDS": self.outbox_lock_timeout_seconds,
             "LOG_LEVEL": self.log_level,
+            "APP_ENVIRONMENT": self.environment,
+            "SERVICE_VERSION": self.service_version,
+            "APP_REVISION": self.revision,
         }

@@ -97,13 +97,22 @@ def create_app(
 
     @app.get("/health/live")
     def live() -> tuple[dict[str, str], int]:
-        return {"status": "ok"}, 200
+        return {
+            "status": "ok",
+            "service": "myaqi-api",
+            "version": str(app.config["SERVICE_VERSION"]),
+            "revision": str(app.config["APP_REVISION"]),
+            "environment": str(app.config["APP_ENVIRONMENT"]),
+        }, 200
 
     @app.get("/health/ready")
     def ready() -> tuple[dict[str, str], int]:
         with database_engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        return {"status": "ready"}, 200
+        return {
+            "status": "ready",
+            "revision": str(app.config["APP_REVISION"]),
+        }, 200
 
     @app.get("/metrics")
     def metrics() -> Response:

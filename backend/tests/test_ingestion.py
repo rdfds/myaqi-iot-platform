@@ -109,8 +109,17 @@ def test_payload_validation_happens_before_persistence(
 
 
 def test_health_and_metrics_endpoints(client, signed_post, measurement_batch) -> None:
-    assert client.get("/health/live").get_json() == {"status": "ok"}
-    assert client.get("/health/ready").get_json() == {"status": "ready"}
+    assert client.get("/health/live").get_json() == {
+        "status": "ok",
+        "service": "myaqi-api",
+        "version": "0.1.0-dev",
+        "revision": "local",
+        "environment": "development",
+    }
+    assert client.get("/health/ready").get_json() == {
+        "status": "ready",
+        "revision": "local",
+    }
     signed_post(client, measurement_batch)
 
     metrics = client.get("/metrics")
