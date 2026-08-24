@@ -152,9 +152,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_latency" {
   ok_actions          = local.alarm_actions
 }
 
-resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
-  alarm_name        = "${local.name}-unhealthy-targets"
-  alarm_description = "At least one API target failed load-balancer health checks."
+resource "aws_cloudwatch_metric_alarm" "unhealthy_targets_primary" {
+  alarm_name        = "${local.name}-unhealthy-targets-primary"
+  alarm_description = "At least one API target in the primary group failed health checks."
   namespace         = "AWS/ApplicationELB"
   metric_name       = "UnHealthyHostCount"
   dimensions = {
@@ -167,7 +167,27 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
   datapoints_to_alarm = 2
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  treat_missing_data  = "breaching"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_actions
+  ok_actions          = local.alarm_actions
+}
+
+resource "aws_cloudwatch_metric_alarm" "unhealthy_targets_alternate" {
+  alarm_name        = "${local.name}-unhealthy-targets-alternate"
+  alarm_description = "At least one API target in the alternate group failed health checks."
+  namespace         = "AWS/ApplicationELB"
+  metric_name       = "UnHealthyHostCount"
+  dimensions = {
+    LoadBalancer = aws_lb.api.arn_suffix
+    TargetGroup  = aws_lb_target_group.api_alternate.arn_suffix
+  }
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  datapoints_to_alarm = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
   alarm_actions       = local.alarm_actions
   ok_actions          = local.alarm_actions
 }

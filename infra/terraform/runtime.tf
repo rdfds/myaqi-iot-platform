@@ -217,9 +217,17 @@ resource "aws_ecs_service" "api" {
   enable_execute_command = true
   propagate_tags         = "SERVICE"
 
-  deployment_minimum_healthy_percent = 100
-  deployment_maximum_percent         = 200
-  health_check_grace_period_seconds  = 60
+  health_check_grace_period_seconds = 60
+
+  deployment_configuration {
+    strategy             = "CANARY"
+    bake_time_in_minutes = 5
+
+    canary_configuration {
+      canary_percent              = 10
+      canary_bake_time_in_minutes = 5
+    }
+  }
 
   deployment_circuit_breaker {
     enable   = true
@@ -236,6 +244,12 @@ resource "aws_ecs_service" "api" {
     target_group_arn = aws_lb_target_group.api.arn
     container_name   = "api"
     container_port   = 8000
+
+    advanced_configuration {
+      alternate_target_group_arn = aws_lb_target_group.api_alternate.arn
+      production_listener_rule   = aws_lb_listener_rule.api.arn
+      role_arn                   = aws_iam_role.ecs_load_balancer.arn
+    }
   }
 
   lifecycle {
@@ -245,6 +259,7 @@ resource "aws_ecs_service" "api" {
   depends_on = [
     aws_lb_listener.https,
     aws_iam_role_policy.ecs_secrets,
+    aws_iam_role_policy_attachment.ecs_load_balancer,
   ]
 }
 
