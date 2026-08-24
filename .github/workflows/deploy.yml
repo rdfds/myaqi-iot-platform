@@ -18,8 +18,14 @@ permissions:
 jobs:
   deploy:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+      (github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success') &&
+      vars.AWS_REGION != '' &&
+      vars.AWS_ACCOUNT_ID != '' &&
+      vars.AWS_DEPLOY_ROLE_ARN != '' &&
+      vars.DEPLOYMENT_NAME != '' &&
+      vars.ECR_REPOSITORY != '' &&
+      vars.API_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: aws-staging
