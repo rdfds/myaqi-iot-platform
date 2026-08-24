@@ -20,6 +20,7 @@ class Settings:
     environment: str
     service_version: str
     revision: str
+    outbox_health_interval_seconds: int
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -39,6 +40,9 @@ class Settings:
             environment=os.getenv("APP_ENVIRONMENT", "development"),
             service_version=os.getenv("SERVICE_VERSION", "0.1.0-dev"),
             revision=os.getenv("APP_REVISION", "local"),
+            outbox_health_interval_seconds=int(
+                os.getenv("OUTBOX_HEALTH_INTERVAL_SECONDS", "60")
+            ),
         )
 
     def as_flask_config(self) -> dict[str, object]:
@@ -55,4 +59,5 @@ class Settings:
             "APP_ENVIRONMENT": self.environment,
             "SERVICE_VERSION": self.service_version,
             "APP_REVISION": self.revision,
+            "OUTBOX_HEALTH_INTERVAL_SECONDS": self.outbox_health_interval_seconds,
         }

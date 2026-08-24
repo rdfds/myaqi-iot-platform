@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from prometheus_client import CollectorRegistry, Counter, Histogram
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
 
 class Metrics:
@@ -29,9 +29,19 @@ class Metrics:
             buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5),
             registry=self.registry,
         )
-        self.outbox_events = Counter(
-            "myaqi_outbox_events_total",
-            "Outbox processing outcomes",
-            ("outcome",),
+        self.outbox_events = Gauge(
+            "myaqi_outbox_events",
+            "Current outbox events by state",
+            ("status",),
             registry=self.registry,
         )
+        self.outbox_oldest_pending = Gauge(
+            "myaqi_outbox_oldest_pending_seconds",
+            "Age of the oldest pending or processing outbox event",
+            registry=self.registry,
+        )
+
+    def update_outbox_health(self, health: dict[str, int | float]) -> None:
+        for status in ("pending", "processing", "dead"):
+            self.outbox_events.labels(status=status).set(health[status])
+        self.outbox_oldest_pending.set(health["oldest_pending_seconds"])

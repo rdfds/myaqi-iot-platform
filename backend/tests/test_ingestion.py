@@ -146,3 +146,4 @@ def test_health_and_metrics_endpoints(client, signed_post, measurement_batch) ->
     assert metrics.status_code == 200
     assert b'myaqi_ingest_requests_total{outcome="accepted"} 1.0' in metrics.data
     assert b'myaqi_ingested_readings_total{outcome="accepted"} 2.0' in metrics.data
+    assert b'myaqi_outbox_events{status="pending"} 1.0' in metrics.data

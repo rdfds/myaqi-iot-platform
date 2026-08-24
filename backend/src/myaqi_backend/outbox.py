@@ -4,13 +4,15 @@ import argparse
 import json
 import logging
 import os
+import signal
 import socket
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from threading import Event
 from typing import Protocol
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 
 from myaqi_backend.config import Settings
 from myaqi_backend.database import SessionFactory, make_engine, make_session_factory
@@ -39,6 +41,41 @@ class LoggingPublisher:
             "outbox_event_published",
             extra={"event_id": event.id, "event_type": event.event_type},
         )
+
+
+def outbox_health(
+    factory: SessionFactory,
+    *,
+    now: datetime | None = None,
+) -> dict[str, int | float]:
+    checked_at = now or datetime.now(UTC)
+    with factory() as session:
+        counts = {
+            status: count
+            for status, count in session.execute(
+                select(OutboxEvent.status, func.count(OutboxEvent.id)).group_by(
+                    OutboxEvent.status
+                )
+            )
+        }
+        oldest_pending = session.scalar(
+            select(func.min(OutboxEvent.created_at)).where(
+                OutboxEvent.status.in_(("pending", "processing"))
+            )
+        )
+    if oldest_pending is not None and oldest_pending.tzinfo is None:
+        oldest_pending = oldest_pending.replace(tzinfo=UTC)
+    oldest_seconds = (
+        max(0.0, (checked_at - oldest_pending).total_seconds())
+        if oldest_pending is not None
+        else 0.0
+    )
+    return {
+        "pending": counts.get("pending", 0),
+        "processing": counts.get("processing", 0),
+        "dead": counts.get("dead", 0),
+        "oldest_pending_seconds": round(oldest_seconds, 3),
+    }
 
 
 def claim_events(
@@ -180,8 +217,20 @@ def main() -> None:
     factory = make_session_factory(make_engine(settings.database_url))
     worker_id = os.getenv("WORKER_ID", f"{socket.gethostname()}-{os.getpid()}")
     publisher = LoggingPublisher()
+    stop_requested = Event()
 
-    while True:
+    def request_stop(signum, _frame) -> None:
+        logger.info(
+            "worker_stop_requested",
+            extra={"worker_id": worker_id, "signal": signum},
+        )
+        stop_requested.set()
+
+    signal.signal(signal.SIGTERM, request_stop)
+    signal.signal(signal.SIGINT, request_stop)
+    next_health_log = 0.0
+
+    while not stop_requested.is_set():
         count = process_once(
             factory,
             publisher=publisher,
@@ -191,10 +240,29 @@ def main() -> None:
             max_attempts=settings.outbox_max_attempts,
         )
         if args.once:
-            print(json.dumps({"worker_id": worker_id, "processed": count}))
+            print(
+                json.dumps(
+                    {
+                        "worker_id": worker_id,
+                        "processed": count,
+                        "health": outbox_health(factory),
+                    }
+                )
+            )
             return
+        current_time = time.monotonic()
+        if current_time >= next_health_log:
+            logger.info(
+                "outbox_health",
+                extra={"worker_id": worker_id, **outbox_health(factory)},
+            )
+            next_health_log = current_time + max(
+                5,
+                settings.outbox_health_interval_seconds,
+            )
         if count == 0:
-            time.sleep(max(0.05, args.poll_seconds))
+            stop_requested.wait(max(0.05, args.poll_seconds))
+    logger.info("worker_stopped", extra={"worker_id": worker_id})
 
 
 if __name__ == "__main__":

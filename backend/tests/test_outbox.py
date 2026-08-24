@@ -8,6 +8,7 @@ from myaqi_backend.outbox import (
     claim_events,
     mark_failed,
     mark_published,
+    outbox_health,
     process_once,
 )
 
@@ -131,3 +132,33 @@ def test_process_once_schedules_failed_publish(app) -> None:
         assert event.status == "pending"
         assert event.attempts == 1
         assert event.locked_by is None
+
+
+def test_outbox_health_reports_backlog_age_and_dead_events(app) -> None:
+    event_id = add_event(app)
+    factory = app.extensions["myaqi_session_factory"]
+    checked_at = datetime.now(UTC) + timedelta(seconds=30)
+
+    initial = outbox_health(factory, now=checked_at)
+    assert initial["pending"] == 1
+    assert initial["processing"] == 0
+    assert initial["dead"] == 0
+    assert initial["oldest_pending_seconds"] >= 29
+
+    claim_events(
+        factory,
+        worker_id="worker-a",
+        batch_size=1,
+        lock_timeout_seconds=60,
+    )
+    mark_failed(
+        factory,
+        event_id=event_id,
+        worker_id="worker-a",
+        error=RuntimeError("permanent failure"),
+        max_attempts=1,
+    )
+    failed = outbox_health(factory, now=checked_at)
+    assert failed["pending"] == 0
+    assert failed["dead"] == 1
+    assert failed["oldest_pending_seconds"] == 0

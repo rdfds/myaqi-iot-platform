@@ -16,6 +16,7 @@ from myaqi_backend.errors import ApiError
 from myaqi_backend.ingestion import blueprint as ingestion_blueprint
 from myaqi_backend.logging_config import configure_logging
 from myaqi_backend.metrics import Metrics
+from myaqi_backend.outbox import outbox_health
 
 
 def create_app(
@@ -116,7 +117,11 @@ def create_app(
 
     @app.get("/metrics")
     def metrics() -> Response:
-        registry = app.extensions["myaqi_metrics"].registry
+        app_metrics = app.extensions["myaqi_metrics"]
+        app_metrics.update_outbox_health(
+            outbox_health(app.extensions["myaqi_session_factory"])
+        )
+        registry = app_metrics.registry
         return Response(generate_latest(registry), mimetype=CONTENT_TYPE_LATEST)
 
     return app
