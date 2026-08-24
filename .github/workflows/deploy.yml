@@ -29,6 +29,8 @@ jobs:
       DEPLOYMENT_NAME: ${{ vars.DEPLOYMENT_NAME }}
       ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
       API_URL: ${{ vars.API_URL }}
+      API_DESIRED_COUNT: ${{ vars.API_DESIRED_COUNT || '2' }}
+      WORKER_DESIRED_COUNT: ${{ vars.WORKER_DESIRED_COUNT || '1' }}
 
     steps:
       - name: Check out the tested revision
@@ -162,6 +164,7 @@ jobs:
           aws ecs update-service \
             --cluster "$DEPLOYMENT_NAME" \
             --service "${DEPLOYMENT_NAME}-worker" \
+            --desired-count "$WORKER_DESIRED_COUNT" \
             --task-definition "$WORKER_TASK" >/dev/null
           aws ecs wait services-stable \
             --cluster "$DEPLOYMENT_NAME" \
@@ -170,6 +173,7 @@ jobs:
           aws ecs update-service \
             --cluster "$DEPLOYMENT_NAME" \
             --service "${DEPLOYMENT_NAME}-api" \
+            --desired-count "$API_DESIRED_COUNT" \
             --task-definition "$API_TASK" >/dev/null
           aws ecs wait services-stable \
             --cluster "$DEPLOYMENT_NAME" \

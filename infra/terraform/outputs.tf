@@ -24,6 +24,16 @@ output "ecr_repository_url" {
   value       = aws_ecr_repository.backend.repository_url
 }
 
+output "ecr_repository_name" {
+  description = "Backend ECR repository name used by GitHub Actions."
+  value       = aws_ecr_repository.backend.name
+}
+
+output "deployment_name" {
+  description = "Shared ECS cluster and service name prefix."
+  value       = local.name
+}
+
 output "api_url" {
   description = "TLS-protected public API origin."
   value       = "https://${var.domain_name}"
