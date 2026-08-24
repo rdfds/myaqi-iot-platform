@@ -23,6 +23,7 @@ dev = [
   "pytest>=8.3,<9",
   "pytest-cov>=6,<7",
   "pyserial>=3.5,<4",
+  "PyYAML>=6.0,<7",
   "ruff>=0.9,<1",
 ]
 

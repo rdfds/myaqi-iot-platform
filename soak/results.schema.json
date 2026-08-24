@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rdfds/myaqi-iot-platform/soak/results.schema.json",
+  "title": "myAQI hardware soak result",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "run_id",
+    "scenario",
+    "device_id",
+    "revision",
+    "metrics",
+    "checks",
+    "passed"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "run_id": {"type": "string", "format": "uuid"},
+    "scenario": {"type": "string"},
+    "device_id": {"type": "string"},
+    "revision": {"type": "string"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "ended_at": {"type": "string", "format": "date-time"},
+    "metrics": {"type": "object"},
+    "checks": {
+      "type": "object",
+      "additionalProperties": {"type": "boolean"}
+    },
+    "passed": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+scenarios:
+  seven-day-resilience:
+    duration_seconds: 604800
+    description: Seven days of normal sampling with network, service, and board faults.
+    checkpoints:
+      - at_seconds: 21600
+        action: Disable the test device's Wi-Fi network for two hours.
+      - at_seconds: 28800
+        action: Restore the test device's Wi-Fi network and confirm the queue drains.
+      - at_seconds: 172800
+        action: Restart the AWS outbox-worker service and wait for it to become healthy.
+      - at_seconds: 259200
+        action: Deploy the same API image through the staged deployment workflow.
+      - at_seconds: 345600
+        action: Power-cycle the sensor board while at least one reading is queued.
+      - at_seconds: 432000
+        action: Disable the test device's Wi-Fi network for six hours.
+      - at_seconds: 453600
+        action: Restore Wi-Fi and confirm buffered readings begin uploading.
+      - at_seconds: 597600
+        action: Record final API, worker, alarm, and device status before the run ends.
