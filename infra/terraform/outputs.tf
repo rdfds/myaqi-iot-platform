@@ -78,3 +78,8 @@ output "operations_dashboard" {
   description = "CloudWatch operations dashboard name."
   value       = aws_cloudwatch_dashboard.operations.dashboard_name
 }
+
+output "github_deploy_role_arn" {
+  description = "OIDC role assumed by the protected GitHub deployment environment."
+  value       = aws_iam_role.github_deploy.arn
+}

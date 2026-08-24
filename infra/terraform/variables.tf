@@ -132,3 +132,30 @@ variable "alarm_email" {
     error_message = "alarm_email must be null or a valid email address."
   }
 }
+
+variable "github_repository" {
+  description = "GitHub owner/repository allowed to deploy."
+  type        = string
+  default     = "rdfds/myaqi-iot-platform"
+}
+
+variable "github_environment" {
+  description = "Protected GitHub environment allowed to assume the deployment role."
+  type        = string
+  default     = "aws-staging"
+}
+
+variable "github_oidc_provider_arn" {
+  description = "Existing GitHub Actions OIDC provider ARN; null creates one in this account."
+  type        = string
+  default     = null
+}
+
+variable "github_oidc_thumbprints" {
+  description = "Fallback CA thumbprints for the GitHub Actions OIDC provider."
+  type        = list(string)
+  default = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1",
+    "1b511abead59c6ce207077c0bf0e0043b1382612",
+  ]
+}
