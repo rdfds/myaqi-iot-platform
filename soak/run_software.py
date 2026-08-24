@@ -271,6 +271,39 @@ def round_robin_operations(
     return operations
 
 
+def render_markdown_summary(report: dict[str, object]) -> str:
+    configuration = report["configuration"]
+    metrics = report["metrics"]
+    database = report["database"]
+    latency = metrics["request_latency_ms"]
+    status = "PASS" if report["passed"] else "FAIL"
+    return "\n".join(
+        [
+            f"## Software fault-injection trial: {status}",
+            "",
+            "> Scope: GitHub-hosted software simulator + PostgreSQL. "
+            "This is not hardware or AWS deployment evidence.",
+            "",
+            f"- Revision: `{report['revision']}`",
+            f"- Readings: {configuration['readings']:,} in "
+            f"{configuration['unique_batches']:,} unique batches",
+            f"- Faults: {configuration['api_faults']} API outages, "
+            f"{configuration['worker_faults']} worker outages, "
+            f"{configuration['acknowledgement_replays']} acknowledgement replays",
+            f"- API/worker restarts: {metrics['api_restarts']}/{metrics['worker_restarts']}",
+            f"- Maximum buffered readings: {metrics['max_device_queue_readings']:,}",
+            f"- Maximum pending outbox events: {metrics['max_outbox_pending']:,}",
+            f"- Missing/duplicate database rows: "
+            f"{database['sequence_range']['missing']}/{database['duplicate_rows']}",
+            f"- Request latency p95: {latency['p95']} ms",
+            f"- Duration: {report['duration_seconds']} seconds",
+            "",
+            "The uploaded evidence bundle contains the JSON report plus API and worker logs.",
+            "",
+        ]
+    )
+
+
 def run_trial(args: argparse.Namespace) -> dict[str, object]:
     if min(args.api_faults, args.worker_faults, args.acknowledgement_replays) < 0:
         raise ValueError("fault counts cannot be negative")
@@ -557,6 +590,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--revision", default="local")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--summary-output", type=Path)
     return parser
 
 
@@ -566,6 +600,8 @@ def main() -> None:
         raise SystemExit("--readings must be between 1 and 1,000,000")
     report = run_trial(args)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    if args.summary_output:
+        args.summary_output.write_text(render_markdown_summary(report), encoding="utf-8")
     print(json.dumps(report, indent=2))
     if not report["passed"]:
         raise SystemExit(1)

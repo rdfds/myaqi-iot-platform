@@ -9,7 +9,12 @@ import pytest
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from soak.run_software import build_batches, percentile, round_robin_operations  # noqa: E402
+from soak.run_software import (  # noqa: E402
+    build_batches,
+    percentile,
+    render_markdown_summary,
+    round_robin_operations,
+)
 
 
 def test_build_batches_covers_sequence_range_without_gaps() -> None:
@@ -57,3 +62,35 @@ def test_percentile_uses_nearest_rank() -> None:
     assert percentile(values, 0.50) == 3.0
     assert percentile(values, 0.95) == 5.0
     assert percentile([], 0.95) == 0.0
+
+
+def test_summary_states_scope_and_observed_results() -> None:
+    report = {
+        "passed": True,
+        "revision": "abc123",
+        "duration_seconds": 42.5,
+        "configuration": {
+            "readings": 25_000,
+            "unique_batches": 250,
+            "api_faults": 4,
+            "worker_faults": 3,
+            "acknowledgement_replays": 8,
+        },
+        "metrics": {
+            "api_restarts": 4,
+            "worker_restarts": 3,
+            "max_device_queue_readings": 500,
+            "max_outbox_pending": 5,
+            "request_latency_ms": {"p95": 18.2},
+        },
+        "database": {
+            "sequence_range": {"missing": 0},
+            "duplicate_rows": 0,
+        },
+    }
+
+    summary = render_markdown_summary(report)
+
+    assert "Software fault-injection trial: PASS" in summary
+    assert "25,000" in summary
+    assert "not hardware or AWS deployment evidence" in summary
