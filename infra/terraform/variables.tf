@@ -62,3 +62,18 @@ variable "database_deletion_protection" {
   type        = bool
   default     = true
 }
+
+variable "domain_name" {
+  description = "Public API hostname, for example api.myaqi.example."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9.-]+[a-z0-9]$", var.domain_name))
+    error_message = "domain_name must be a valid lowercase DNS hostname."
+  }
+}
+
+variable "route53_zone_id" {
+  description = "Route 53 public hosted zone containing domain_name."
+  type        = string
+}

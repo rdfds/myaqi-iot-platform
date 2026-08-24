@@ -18,3 +18,13 @@ output "database_master_secret_arn" {
   value       = aws_db_instance.main.master_user_secret[0].secret_arn
   sensitive   = true
 }
+
+output "ecr_repository_url" {
+  description = "Immutable backend image repository."
+  value       = aws_ecr_repository.backend.repository_url
+}
+
+output "api_url" {
+  description = "TLS-protected public API origin."
+  value       = "https://${var.domain_name}"
+}
