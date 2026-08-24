@@ -91,7 +91,6 @@ def loadConfigFile():
 def writeConfigToFile():
     try:
         jsonString = json.dumps(CONFIG_DATA)
-        print(jsonString)
         with open("/config.json", "w") as file:
             file.write(jsonString)
     except:
@@ -178,8 +177,6 @@ def setupWebServer():
 
     def updateCreds(request: HTTPRequest):
         print("Updating creds...")
-        #print(request.body)
-        print(request.body.decode("utf-8"))
         ssid = request.body.decode("utf-8").split("&")[0].split("=")[1]
         password = request.body.decode("utf-8").split("&")[1].split("=")[1]
 
@@ -187,7 +184,6 @@ def setupWebServer():
         CONFIG_DATA['ssid'] = ssid
         CONFIG_DATA['password'] = password
         removeError() # calling removeError will save config file
-        print(CONFIG_DATA)
 
 
 
