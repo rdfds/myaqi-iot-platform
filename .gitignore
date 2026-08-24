@@ -20,3 +20,6 @@ coverage.xml
 soak/results/
 **/.terraform/*
 *.tfplan
+*.tfvars
+!*.tfvars.example
+backend.hcl
