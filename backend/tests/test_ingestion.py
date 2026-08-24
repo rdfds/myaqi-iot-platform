@@ -4,7 +4,7 @@ import time
 
 from sqlalchemy import func, select
 
-from myaqi_backend.models import IngestRequest, Measurement, OutboxEvent
+from myaqi_backend.models import Device, IngestRequest, Measurement, OutboxEvent
 
 
 def counts(app) -> tuple[int, int, int]:
@@ -31,6 +31,25 @@ def test_accepts_signed_batch_and_creates_outbox(
     }
     assert response.headers["X-Request-ID"]
     assert counts(app) == (1, 2, 1)
+
+
+def test_ingestion_records_device_runtime_state(
+    app, client, signed_post, measurement_batch
+) -> None:
+    response = signed_post(
+        client,
+        measurement_batch,
+        firmware_version="2026.08.24+2",
+    )
+
+    assert response.status_code == 202
+    factory = app.extensions["myaqi_session_factory"]
+    with factory() as session:
+        device = session.get(Device, "school-001")
+        assert device is not None
+        assert device.last_seen_at is not None
+        assert device.last_firmware_version == "2026.08.24+2"
+        assert device.last_sequence == 102
 
 
 def test_same_idempotency_key_replays_original_response(

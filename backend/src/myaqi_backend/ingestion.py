@@ -26,6 +26,7 @@ from myaqi_backend.validation import PayloadError, ReadingInput, parse_batch
 
 blueprint = Blueprint("ingestion", __name__)
 IDEMPOTENCY_KEY = re.compile(r"^[A-Za-z0-9._:-]{16,128}$")
+FIRMWARE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
 
 
 def _metrics() -> Metrics:
@@ -159,6 +160,7 @@ def ingest_measurements(device_id: str):
     started = time.perf_counter()
     raw_body = request.get_data(cache=True)
     idempotency_key = request.headers.get("Idempotency-Key", "")
+    firmware_version = request.headers.get("X-Firmware-Version")
     metrics = _metrics()
 
     if not IDEMPOTENCY_KEY.fullmatch(idempotency_key):
@@ -167,6 +169,13 @@ def ingest_measurements(device_id: str):
             "Invalid idempotency key",
             "Idempotency-Key must be 16-128 URL-safe characters",
             "invalid_idempotency_key",
+        )
+    if firmware_version is not None and not FIRMWARE_VERSION.fullmatch(firmware_version):
+        raise ApiError(
+            400,
+            "Invalid firmware version",
+            "X-Firmware-Version must be a 1-64 character release identifier",
+            "invalid_firmware_version",
         )
 
     session_factory = current_app.extensions["myaqi_session_factory"]
@@ -219,6 +228,14 @@ def ingest_measurements(device_id: str):
                     str(exc),
                     "invalid_batch",
                 ) from exc
+
+            device.last_seen_at = datetime.now(UTC)
+            device.last_sequence = max(
+                device.last_sequence or 0,
+                max(reading.sequence for reading in readings),
+            )
+            if firmware_version is not None:
+                device.last_firmware_version = firmware_version
 
             payload_digest = body_sha256(raw_body)
             ingest_request, created = _insert_ingest_request(

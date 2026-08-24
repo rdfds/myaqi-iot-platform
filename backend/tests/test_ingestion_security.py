@@ -103,3 +103,16 @@ def test_idempotency_key_format_is_checked_before_processing(client) -> None:
 
     assert response.status_code == 400
     assert response.get_json()["type"].endswith("/invalid_idempotency_key")
+
+
+def test_firmware_version_header_rejects_unsafe_identifier(
+    client, signed_post, measurement_batch
+) -> None:
+    response = signed_post(
+        client,
+        measurement_batch,
+        firmware_version="release candidate/../../latest",
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()["type"].endswith("/invalid_firmware_version")

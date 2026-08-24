@@ -31,6 +31,7 @@ def new_id() -> str:
 
 class Device(Base):
     __tablename__ = "devices"
+    __table_args__ = (Index("ix_devices_last_seen_at", "last_seen_at"),)
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     display_name: Mapped[str] = mapped_column(String(160))
@@ -46,6 +47,9 @@ class Device(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now
     )
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_firmware_version: Mapped[str | None] = mapped_column(String(64))
+    last_sequence: Mapped[int | None] = mapped_column(Integer)
 
 
 class IngestRequest(Base):
