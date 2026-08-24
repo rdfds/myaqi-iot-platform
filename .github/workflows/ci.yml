@@ -39,6 +39,8 @@ jobs:
         run: pip install -e "backend[dev]"
       - name: Lint
         run: ruff check backend firmware_tests scripts soak AdafruitCode/myaqi_client.py --config backend/pyproject.toml
+      - name: Audit Python dependencies
+        run: pip-audit --local --progress-spinner off
       - name: Apply migrations
         working-directory: backend
         run: alembic upgrade head

@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "httpx>=0.28,<1",
+  "pip-audit>=2.10,<3",
   "pytest>=9.0.3,<10",
   "pytest-cov>=6,<7",
   "pyserial>=3.5,<4",
