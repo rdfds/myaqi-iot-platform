@@ -4,6 +4,8 @@
 
 An end-to-end indoor air-quality system spanning CircuitPython firmware, local Wi-Fi provisioning, authenticated ingestion, durable measurement storage, asynchronous event delivery, and operational telemetry.
 
+> **Public showcase:** This sanitized snapshot was published in August 2026 from a system developed and deployed during 2021–2024. Public commit dates reflect showcase preparation; deployment credentials and private configuration remain excluded.
+
 The original system was used in a 14-school deployment. This repository preserves that 2021-2024 firmware and Flask prototype while developing a separate 2026 reference backend around the failure modes that matter in an IoT service: intermittent connectivity, retried uploads, duplicated readings, worker crashes, and unavailable downstream providers.
 
 ## System generations
