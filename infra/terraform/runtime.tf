@@ -82,6 +82,10 @@ resource "aws_ecs_task_definition" "api" {
     operating_system_family = "LINUX"
   }
 
+  volume {
+    name = "tmp"
+  }
+
   container_definitions = jsonencode([
     {
       name                   = "api"
@@ -89,6 +93,13 @@ resource "aws_ecs_task_definition" "api" {
       essential              = true
       readonlyRootFilesystem = true
       linuxParameters        = { initProcessEnabled = true }
+      mountPoints = [
+        {
+          sourceVolume  = "tmp"
+          containerPath = "/tmp"
+          readOnly      = false
+        }
+      ]
       portMappings = [
         {
           name          = "http"
@@ -141,6 +152,10 @@ resource "aws_ecs_task_definition" "worker" {
     operating_system_family = "LINUX"
   }
 
+  volume {
+    name = "tmp"
+  }
+
   container_definitions = jsonencode([
     {
       name                   = "worker"
@@ -150,6 +165,13 @@ resource "aws_ecs_task_definition" "worker" {
       readonlyRootFilesystem = true
       stopTimeout            = 120
       linuxParameters        = { initProcessEnabled = true }
+      mountPoints = [
+        {
+          sourceVolume  = "tmp"
+          containerPath = "/tmp"
+          readOnly      = false
+        }
+      ]
       environment = concat(local.database_environment, local.common_environment, [
         { name = "OUTBOX_SNS_TOPIC_ARN", value = aws_sns_topic.outbox.arn },
         { name = "OUTBOX_HEALTH_INTERVAL_SECONDS", value = "60" },
@@ -188,6 +210,10 @@ resource "aws_ecs_task_definition" "migration" {
     operating_system_family = "LINUX"
   }
 
+  volume {
+    name = "tmp"
+  }
+
   container_definitions = jsonencode([
     {
       name                   = "migration"
@@ -195,8 +221,15 @@ resource "aws_ecs_task_definition" "migration" {
       essential              = true
       command                = ["alembic", "upgrade", "head"]
       readonlyRootFilesystem = true
-      environment            = concat(local.database_environment, local.common_environment)
-      secrets                = local.database_secrets
+      mountPoints = [
+        {
+          sourceVolume  = "tmp"
+          containerPath = "/tmp"
+          readOnly      = false
+        }
+      ]
+      environment = concat(local.database_environment, local.common_environment)
+      secrets     = local.database_secrets
       logConfiguration = {
         logDriver = "awslogs"
         options = {
