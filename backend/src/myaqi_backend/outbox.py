@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from threading import Event
 from typing import Protocol
 
+import boto3
 from sqlalchemy import and_, func, or_, select
 
 from myaqi_backend.config import Settings
@@ -33,6 +34,10 @@ class Publisher(Protocol):
     def publish(self, event: ClaimedEvent) -> None: ...
 
 
+class SnsClient(Protocol):
+    def publish(self, **kwargs) -> object: ...
+
+
 class LoggingPublisher:
     """Reference publisher that exposes the handoff without hiding a queue dependency."""
 
@@ -41,6 +46,38 @@ class LoggingPublisher:
             "outbox_event_published",
             extra={"event_id": event.id, "event_type": event.event_type},
         )
+
+
+class SnsPublisher:
+    def __init__(self, topic_arn: str, client: SnsClient | None = None) -> None:
+        self.topic_arn = topic_arn
+        self.client = client or boto3.client("sns")
+
+    def publish(self, event: ClaimedEvent) -> None:
+        self.client.publish(
+            TopicArn=self.topic_arn,
+            Message=json.dumps(
+                {
+                    "event_id": event.id,
+                    "event_type": event.event_type,
+                    "payload": event.payload,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            MessageAttributes={
+                "event_type": {
+                    "DataType": "String",
+                    "StringValue": event.event_type,
+                }
+            },
+        )
+
+
+def build_publisher(settings: Settings) -> Publisher:
+    if settings.outbox_sns_topic_arn:
+        return SnsPublisher(settings.outbox_sns_topic_arn)
+    return LoggingPublisher()
 
 
 def outbox_health(
@@ -216,7 +253,7 @@ def main() -> None:
     configure_logging(settings.log_level)
     factory = make_session_factory(make_engine(settings.database_url))
     worker_id = os.getenv("WORKER_ID", f"{socket.gethostname()}-{os.getpid()}")
-    publisher = LoggingPublisher()
+    publisher = build_publisher(settings)
     stop_requested = Event()
 
     def request_stop(signum, _frame) -> None:

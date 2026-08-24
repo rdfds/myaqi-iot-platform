@@ -21,6 +21,7 @@ class Settings:
     service_version: str
     revision: str
     outbox_health_interval_seconds: int
+    outbox_sns_topic_arn: str | None
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -43,6 +44,7 @@ class Settings:
             outbox_health_interval_seconds=int(
                 os.getenv("OUTBOX_HEALTH_INTERVAL_SECONDS", "60")
             ),
+            outbox_sns_topic_arn=os.getenv("OUTBOX_SNS_TOPIC_ARN") or None,
         )
 
     def as_flask_config(self) -> dict[str, object]:
@@ -60,4 +62,5 @@ class Settings:
             "SERVICE_VERSION": self.service_version,
             "APP_REVISION": self.revision,
             "OUTBOX_HEALTH_INTERVAL_SECONDS": self.outbox_health_interval_seconds,
+            "OUTBOX_SNS_TOPIC_ARN": self.outbox_sns_topic_arn,
         }

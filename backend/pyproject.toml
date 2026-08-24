@@ -9,6 +9,7 @@ description = "Reliable ingestion backend for the myAQI IoT platform"
 requires-python = ">=3.11"
 dependencies = [
   "alembic>=1.14,<2",
+  "boto3>=1.40,<2",
   "Flask>=3.1,<4",
   "gunicorn>=23,<24",
   "prometheus-client>=0.21,<1",

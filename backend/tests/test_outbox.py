@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 
 from myaqi_backend.models import OutboxEvent
 from myaqi_backend.outbox import (
     ClaimedEvent,
+    SnsPublisher,
     claim_events,
     mark_failed,
     mark_published,
@@ -162,3 +164,37 @@ def test_outbox_health_reports_backlog_age_and_dead_events(app) -> None:
     assert failed["pending"] == 0
     assert failed["dead"] == 1
     assert failed["oldest_pending_seconds"] == 0
+
+
+def test_sns_publisher_preserves_event_identity_and_type() -> None:
+    calls: list[dict[str, object]] = []
+
+    class RecordingSnsClient:
+        def publish(self, **kwargs) -> object:
+            calls.append(kwargs)
+            return {"MessageId": "message-1"}
+
+    publisher = SnsPublisher(
+        "arn:aws:sns:us-east-1:123456789012:myaqi-events",
+        client=RecordingSnsClient(),
+    )
+    publisher.publish(
+        ClaimedEvent(
+            id="event-1",
+            event_type="measurements.ingested",
+            payload={"accepted": 2},
+        )
+    )
+
+    assert calls[0]["TopicArn"] == "arn:aws:sns:us-east-1:123456789012:myaqi-events"
+    assert json.loads(str(calls[0]["Message"])) == {
+        "event_id": "event-1",
+        "event_type": "measurements.ingested",
+        "payload": {"accepted": 2},
+    }
+    assert calls[0]["MessageAttributes"] == {
+        "event_type": {
+            "DataType": "String",
+            "StringValue": "measurements.ingested",
+        }
+    }
