@@ -119,6 +119,37 @@ locals {
   alarm_actions = [aws_sns_topic.alarms.arn]
 }
 
+resource "aws_route53_health_check" "api" {
+  fqdn              = var.domain_name
+  port              = 443
+  type              = "HTTPS_STR_MATCH"
+  resource_path     = "/health/ready"
+  search_string     = "\"status\":\"ready\""
+  request_interval  = 30
+  failure_threshold = 3
+  enable_sni        = true
+  measure_latency   = true
+
+  tags = { Name = "${local.name}-external-api" }
+}
+
+resource "aws_cloudwatch_metric_alarm" "external_health" {
+  alarm_name          = "${local.name}-external-health"
+  alarm_description   = "Global Route 53 checkers could not verify the public readiness endpoint."
+  namespace           = "AWS/Route53"
+  metric_name         = "HealthCheckStatus"
+  dimensions          = { HealthCheckId = aws_route53_health_check.api.id }
+  statistic           = "Minimum"
+  period              = 60
+  evaluation_periods  = 3
+  datapoints_to_alarm = 2
+  threshold           = 1
+  comparison_operator = "LessThanThreshold"
+  treat_missing_data  = "breaching"
+  alarm_actions       = local.alarm_actions
+  ok_actions          = local.alarm_actions
+}
+
 resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   alarm_name          = "${local.name}-alb-target-5xx"
   alarm_description   = "API targets returned at least five 5xx responses in five minutes."
@@ -396,6 +427,22 @@ resource "aws_cloudwatch_dashboard" "operations" {
             ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.main.identifier],
             [".", "DatabaseConnections", ".", "."],
             [".", "FreeStorageSpace", ".", ".", { yAxis = "right" }],
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 12
+        width  = 24
+        height = 5
+        properties = {
+          title  = "External availability and connection time"
+          region = "us-east-1"
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/Route53", "HealthCheckStatus", "HealthCheckId", aws_route53_health_check.api.id, { stat = "Minimum" }],
+            [".", "TimeToFirstByte", ".", ".", { stat = "Average", yAxis = "right" }],
           ]
         }
       },

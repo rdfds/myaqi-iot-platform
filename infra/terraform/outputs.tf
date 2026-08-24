@@ -89,6 +89,11 @@ output "operations_dashboard" {
   value       = aws_cloudwatch_dashboard.operations.dashboard_name
 }
 
+output "external_health_check_id" {
+  description = "Route 53 health check that supplies external availability history."
+  value       = aws_route53_health_check.api.id
+}
+
 output "github_deploy_role_arn" {
   description = "OIDC role assumed by the protected GitHub deployment environment."
   value       = aws_iam_role.github_deploy.arn

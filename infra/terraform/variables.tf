@@ -1,7 +1,12 @@
 variable "aws_region" {
-  description = "AWS region for the myAQI deployment."
+  description = "AWS region for the myAQI deployment and Route 53 health metrics."
   type        = string
   default     = "us-east-1"
+
+  validation {
+    condition     = var.aws_region == "us-east-1"
+    error_message = "This root currently requires us-east-1 for Route 53 health alarms."
+  }
 }
 
 variable "project_name" {
