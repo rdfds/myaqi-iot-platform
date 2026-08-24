@@ -18,3 +18,5 @@ coverage.xml
 .ruff_cache/
 *.egg-info/
 soak/results/
+**/.terraform/*
+*.tfplan
