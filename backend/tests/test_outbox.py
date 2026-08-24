@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
+import myaqi_backend.outbox as outbox_module
+from myaqi_backend.config import Settings
 from myaqi_backend.models import OutboxEvent
 from myaqi_backend.outbox import (
     ClaimedEvent,
     SnsPublisher,
+    build_publisher,
     claim_events,
     mark_failed,
     mark_published,
@@ -198,3 +202,22 @@ def test_sns_publisher_preserves_event_identity_and_type() -> None:
             "StringValue": "measurements.ingested",
         }
     }
+
+
+def test_publisher_selection_uses_sns_only_when_configured(monkeypatch) -> None:
+    local_settings = replace(Settings.from_env(), outbox_sns_topic_arn=None)
+    assert type(build_publisher(local_settings)).__name__ == "LoggingPublisher"
+
+    monkeypatch.setattr(
+        outbox_module,
+        "SnsPublisher",
+        lambda topic_arn: ("sns", topic_arn),
+    )
+    cloud_settings = replace(
+        local_settings,
+        outbox_sns_topic_arn="arn:aws:sns:us-east-1:123456789012:myaqi-events",
+    )
+    assert build_publisher(cloud_settings) == (
+        "sns",
+        "arn:aws:sns:us-east-1:123456789012:myaqi-events",
+    )

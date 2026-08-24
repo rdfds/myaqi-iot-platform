@@ -4,9 +4,11 @@ import json
 from dataclasses import replace
 from datetime import UTC, datetime
 
+import pytest
 from sqlalchemy import func, select
 
 from myaqi_backend.admin import (
+    build_parser,
     inspect_device,
     list_dead_events,
     provision_device,
@@ -54,6 +56,18 @@ def test_admin_provisions_and_seeds_devices(tmp_path) -> None:
     with factory() as session:
         assert session.scalar(select(func.count()).select_from(Device)) == 4
     engine.dispose()
+
+
+def test_admin_parser_exposes_operational_commands() -> None:
+    parser = build_parser()
+
+    assert parser.parse_args(["inspect-device", "school-001"]).command == "inspect-device"
+    verify = parser.parse_args(
+        ["verify-sequence-range", "school-001", "--start", "10", "--end", "20"]
+    )
+    assert (verify.start, verify.end) == (10, 20)
+    assert parser.parse_args(["list-dead-events"]).limit == 100
+    assert parser.parse_args(["replay-event", "event-1"]).event_id == "event-1"
 
 
 def test_admin_inspects_sequences_and_replays_dead_events(tmp_path) -> None:
@@ -129,3 +143,16 @@ def test_admin_inspects_sequences_and_replays_dead_events(tmp_path) -> None:
     assert replayed["status"] == "pending"
     assert replayed["attempts_retained"] == 8
     assert list_dead_events(limit=10, settings=settings) == {"events": []}
+
+    with pytest.raises(ValueError, match="Unknown device"):
+        inspect_device("unknown-device", settings=settings)
+    with pytest.raises(ValueError, match="Sequence range"):
+        verify_sequence_range("school-202", start=0, end=10, settings=settings)
+    with pytest.raises(ValueError, match="Unknown device"):
+        verify_sequence_range("unknown-device", start=1, end=10, settings=settings)
+    with pytest.raises(ValueError, match="Limit"):
+        list_dead_events(limit=0, settings=settings)
+    with pytest.raises(ValueError, match="Unknown event"):
+        replay_event("unknown-event", settings=settings)
+    with pytest.raises(ValueError, match="not dead"):
+        replay_event(dead["events"][0]["id"], settings=settings)
