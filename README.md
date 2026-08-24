@@ -133,7 +133,9 @@ The suite covers signature tampering, stale timestamps, payload bounds, idempote
 The manually triggered **Reliability Trial** adds an integration-level software test: it ingests
 sequential signed readings through the real processes and PostgreSQL while interrupting the API
 and worker and replaying acknowledgements. Each run publishes a revision-linked result and logs.
-See [`soak/README.md`](soak/README.md) for its exact scope and the separate hardware procedure.
+The [latest preserved result](docs/reliability/2026-08-24-software-trial.md) covered 50,000 readings
+with zero missing or duplicate rows. See [`soak/README.md`](soak/README.md) for the exact scope and
+the separate hardware procedure.
 
 ## Benchmark harness
 
