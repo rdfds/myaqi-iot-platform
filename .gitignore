@@ -8,6 +8,7 @@ __pycache__/
 *.py[cod]
 AdafruitCode/config.json
 AdafruitCode/config.bak
+AdafruitCode/myaqi_state.json*
 backend/*.db
 backend/benchmark-devices.json
 benchmark-devices.json

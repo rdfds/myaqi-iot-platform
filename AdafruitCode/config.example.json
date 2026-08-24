@@ -5,9 +5,12 @@
   "test": "test",
   "AP_PASSWORD": "change-me",
   "serial_number": "",
+  "api_base_url": "https://api.example.com",
+  "device_secret": "",
+  "upload_batch_size": 20,
+  "max_buffered_readings": 120,
+  "measurement_interval_seconds": 600,
   "AP_SSID": "myAQI",
-  "aio_key": "",
   "ssid": "",
-  "password": "",
-  "aio_username": ""
+  "password": ""
 }

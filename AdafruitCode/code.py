@@ -12,7 +12,10 @@ import neopixel
 import microcontroller
 import mdns
 import busio
+import rtc
+import adafruit_ntp
 from adafruit_pm25.i2c import PM25_I2C
+from myaqi_client import JsonStateStore, MyAQIClient, UploadError
 
 ### Air Quality Sensor
 reset_pin = None
@@ -68,11 +71,9 @@ STATES = [
     }
 ]
 
-#AQI_UPDATE_INTERVAL = 600
-AQI_UPDATE_INTERVAL = 60
+AQI_UPDATE_INTERVAL = 600
 last_AQI_Update = -50
-AQI_UPDATE_ADDRESS = "https://myaqifinal.vercel.app/api/senddata"
-ACTIVATION_ADDRESS = "https://myaqifinal.vercel.app/api/activate"
+INGESTION_STATE_PATH = "/myaqi_state.json"
 
 def updateStatusLED():
 
@@ -225,9 +226,46 @@ def startAP():
 
 def setupRequests():
     global requests
+    global pool
 
     pool = socketpool.SocketPool(wifi.radio)
     requests = adafruit_requests.Session(pool, ssl.create_default_context())
+
+def syncClock():
+    global clock_synchronized
+
+    print("Synchronizing device clock...")
+    ntp = adafruit_ntp.NTP(pool, tz_offset=0, cache_seconds=3600)
+    rtc.RTC().datetime = ntp.datetime
+    clock_synchronized = True
+    print("Device clock synchronized")
+
+def setupIngestionClient():
+    global ingestion_client
+
+    required = ("api_base_url", "serial_number", "device_secret")
+    for key in required:
+        if not CONFIG_DATA.get(key):
+            raise ValueError("Missing ingestion configuration: " + key)
+
+    ingestion_client = MyAQIClient(
+        requests,
+        CONFIG_DATA["api_base_url"],
+        CONFIG_DATA["serial_number"],
+        CONFIG_DATA["device_secret"],
+        JsonStateStore(INGESTION_STATE_PATH),
+        batch_size=CONFIG_DATA.get("upload_batch_size", 20),
+        max_pending=CONFIG_DATA.get("max_buffered_readings", 120),
+    )
+    print("Buffered readings:", ingestion_client.pending_count)
+    if clock_synchronized:
+        try:
+            result = ingestion_client.flush(max_batches=3)
+            print("Startup upload result:", result)
+        except Exception as error:
+            print("Buffered readings remain queued:", str(error))
+    else:
+        print("Buffered readings remain queued until clock synchronization")
 
 def connectToWifi():
     global current_state
@@ -266,18 +304,6 @@ def testRequest():
     except:
         print("Error reaching out to the internet")
         addError("Unable to reach the internet", 2)
-
-def registerDevice():
-    response = None
-    try:
-        print(ACTIVATION_ADDRESS+"?serialnumber="+CONFIG_DATA["serial_number"])
-        response = requests.put(ACTIVATION_ADDRESS+"?deviceserialnumber="+CONFIG_DATA["serial_number"])
-        print("Device registered successfully")
-    except:
-
-        print("Error reaching out to the internet")
-        addError("Unable to reach the internet", 2)
-
 
 def reset():
 
@@ -368,20 +394,50 @@ def getAQI(aqdata):
 
 
 def updateAQIInfo():
+    global clock_synchronized
+    global current_state
+
     print("Updating AQI info...")
+    if not clock_synchronized:
+        try:
+            syncClock()
+        except Exception as error:
+            print("Skipping timestamped reading until clock synchronization:", str(error))
+            return
+
     try:
         aqdata = pm25.read()
         print(aqdata)
         airQuality = getAQI(aqdata)
-        print(airQuality)
+        print("Calculated AQI:", airQuality)
+        if ingestion_client is None:
+            print("Ingestion client is not configured")
+            return
+
         try:
-            response = requests.get(AQI_UPDATE_ADDRESS+"?currentaqi="+str(airQuality)+"&deviceserialnumber="+CONFIG_DATA["serial_number"])
-            #print(response.json())
-            print(response.text)
+            reading = ingestion_client.enqueue(aqdata["pm25 env"])
+        except ValueError as error:
+            print("Discarding invalid sensor reading:", str(error))
+            return
+        except OSError as error:
+            print("Unable to persist sensor reading:", str(error))
+            current_state = 2
+            updateStatusLED()
+            return
+        print("Queued reading sequence:", reading["sequence"])
+        try:
+            result = ingestion_client.flush(max_batches=3)
+            print("Upload result:", result)
+        except UploadError as error:
+            print("Reading remains buffered:", str(error))
+            if error.status == 401:
+                clock_synchronized = False
+                try:
+                    syncClock()
+                except Exception as clock_error:
+                    print("Clock resynchronization failed:", str(clock_error))
         except Exception as error:
-            print(str(error))
-            print(error)
-        #POST aqiVal to API endpoints
+            print("Reading remains buffered:", str(error))
 
         #print()
         #print("Concentration Units (standard)")
@@ -418,9 +474,12 @@ CONFIG_DATA = None
 pool = None
 server =  None
 requests = None
+ingestion_client = None
+clock_synchronized = False
 
 
 loadConfigFile()
+AQI_UPDATE_INTERVAL = CONFIG_DATA.get("measurement_interval_seconds", AQI_UPDATE_INTERVAL)
 
 #if checkForErrors():
 #    pass
@@ -429,7 +488,16 @@ if checkForWifiCredentials() and not checkForErrors():
     # Connect to Wifi
     connectToWifi()
     setupRequests()
-    registerDevice()
+    try:
+        syncClock()
+    except Exception as error:
+        print("Unable to synchronize clock; readings will remain buffered:", str(error))
+    try:
+        setupIngestionClient()
+    except Exception as error:
+        print("Unable to initialize ingestion:", str(error))
+        current_state = 2
+        updateStatusLED()
 
 else:
     # Start Wifi in access point mode
