@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "myaqi-backend"
 version = "0.1.0"
-description = "Reference backend for reliable myAQI device ingestion"
+description = "Reliable ingestion backend for the myAQI IoT platform"
 requires-python = ">=3.11"
 dependencies = [
   "alembic>=1.14,<2",
@@ -44,3 +44,6 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["myaqi_backend", "myaqi_client", "tests"]

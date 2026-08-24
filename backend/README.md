@@ -1,6 +1,6 @@
-# Reference backend
+# Backend
 
-The 2026 backend is intentionally separate from the historical `WebServer/index.py`. It provides a small, testable ingestion boundary instead of wrapping the original provider-specific routes in new infrastructure.
+The backend receives authenticated measurement batches from the CircuitPython client, persists readings and downstream work atomically, and exposes the health and telemetry needed to operate that path.
 
 ## Development setup
 

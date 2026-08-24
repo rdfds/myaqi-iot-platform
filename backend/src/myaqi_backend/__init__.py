@@ -1,4 +1,4 @@
-"""myAQI reference backend."""
+"""myAQI ingestion backend."""
 
 from myaqi_backend.app import create_app
 
