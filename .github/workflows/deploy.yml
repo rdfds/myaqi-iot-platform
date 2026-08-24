@@ -161,23 +161,42 @@ jobs:
           WORKER_TASK: ${{ steps.tasks.outputs.worker }}
         run: |
           set -euo pipefail
+          wait_for_service() {
+            service="$1"
+            for attempt in $(seq 1 80); do
+              status=$(aws ecs describe-services \
+                --cluster "$DEPLOYMENT_NAME" \
+                --services "$service" \
+                --query 'services[0].[desiredCount,runningCount,pendingCount,length(deployments)]' \
+                --output text)
+              read -r desired running pending deployments <<< "$status"
+              if test "$running" = "$desired" && test "$pending" = "0" && test "$deployments" = "1"; then
+                return 0
+              fi
+              echo "Waiting for $service: desired=$desired running=$running pending=$pending deployments=$deployments (attempt $attempt/80)"
+              sleep 15
+            done
+            aws ecs describe-services \
+              --cluster "$DEPLOYMENT_NAME" \
+              --services "$service" \
+              --query 'services[0].events[0:10]' \
+              --output table
+            return 1
+          }
+
           aws ecs update-service \
             --cluster "$DEPLOYMENT_NAME" \
             --service "${DEPLOYMENT_NAME}-worker" \
             --desired-count "$WORKER_DESIRED_COUNT" \
             --task-definition "$WORKER_TASK" >/dev/null
-          aws ecs wait services-stable \
-            --cluster "$DEPLOYMENT_NAME" \
-            --services "${DEPLOYMENT_NAME}-worker"
+          wait_for_service "${DEPLOYMENT_NAME}-worker"
 
           aws ecs update-service \
             --cluster "$DEPLOYMENT_NAME" \
             --service "${DEPLOYMENT_NAME}-api" \
             --desired-count "$API_DESIRED_COUNT" \
             --task-definition "$API_TASK" >/dev/null
-          aws ecs wait services-stable \
-            --cluster "$DEPLOYMENT_NAME" \
-            --services "${DEPLOYMENT_NAME}-api"
+          wait_for_service "${DEPLOYMENT_NAME}-api"
 
       - name: Smoke-test the deployed revision
         env:
