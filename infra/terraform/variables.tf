@@ -77,3 +77,47 @@ variable "route53_zone_id" {
   description = "Route 53 public hosted zone containing domain_name."
   type        = string
 }
+
+variable "device_master_secret_arn" {
+  description = "ARN of a Secrets Manager secret containing the device master key."
+  type        = string
+
+  validation {
+    condition     = can(regex("^arn:aws[a-z-]*:secretsmanager:", var.device_master_secret_arn))
+    error_message = "device_master_secret_arn must be an AWS Secrets Manager ARN."
+  }
+}
+
+variable "initial_image_tag" {
+  description = "Existing immutable ECR image tag used to bootstrap ECS services."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_][A-Za-z0-9_.-]{6,127}$", var.initial_image_tag))
+    error_message = "initial_image_tag must be an ECR-compatible immutable tag."
+  }
+}
+
+variable "service_version" {
+  description = "Human-readable application version exposed by health checks."
+  type        = string
+  default     = "0.1.0"
+}
+
+variable "api_desired_count" {
+  description = "Number of API tasks."
+  type        = number
+  default     = 2
+}
+
+variable "worker_desired_count" {
+  description = "Number of outbox worker tasks."
+  type        = number
+  default     = 1
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch Logs retention."
+  type        = number
+  default     = 30
+}

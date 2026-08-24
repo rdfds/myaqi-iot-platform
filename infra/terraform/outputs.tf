@@ -28,3 +28,43 @@ output "api_url" {
   description = "TLS-protected public API origin."
   value       = "https://${var.domain_name}"
 }
+
+output "ecs_cluster_name" {
+  description = "ECS cluster used by deployment automation."
+  value       = aws_ecs_cluster.main.name
+}
+
+output "api_service_name" {
+  description = "API ECS service."
+  value       = aws_ecs_service.api.name
+}
+
+output "worker_service_name" {
+  description = "Worker ECS service."
+  value       = aws_ecs_service.worker.name
+}
+
+output "api_task_family" {
+  description = "API task-definition family."
+  value       = aws_ecs_task_definition.api.family
+}
+
+output "worker_task_family" {
+  description = "Worker task-definition family."
+  value       = aws_ecs_task_definition.worker.family
+}
+
+output "migration_task_family" {
+  description = "Migration task-definition family."
+  value       = aws_ecs_task_definition.migration.family
+}
+
+output "worker_security_group_id" {
+  description = "Security group used for migration and worker tasks."
+  value       = aws_security_group.worker.id
+}
+
+output "outbox_topic_arn" {
+  description = "SNS topic receiving published outbox events."
+  value       = aws_sns_topic.outbox.arn
+}
