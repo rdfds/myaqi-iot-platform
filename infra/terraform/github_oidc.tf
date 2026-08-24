@@ -60,6 +60,8 @@ data "aws_iam_policy_document" "github_deploy" {
       "ecr:BatchCheckLayerAvailability",
       "ecr:BatchGetImage",
       "ecr:CompleteLayerUpload",
+      "ecr:DescribeImageScanFindings",
+      "ecr:DescribeImages",
       "ecr:GetDownloadUrlForLayer",
       "ecr:InitiateLayerUpload",
       "ecr:PutImage",
@@ -129,6 +131,19 @@ data "aws_iam_policy_document" "github_deploy" {
       test     = "StringEquals"
       variable = "iam:PassedToService"
       values   = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid       = "PassLoadBalancerInfrastructureRole"
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
+    resources = [aws_iam_role.ecs_load_balancer.arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs.amazonaws.com"]
     }
   }
 }
