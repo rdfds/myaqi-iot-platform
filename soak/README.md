@@ -1,4 +1,34 @@
-# Hardware soak testing
+# Reliability trials
+
+## Automated software fault-injection trial
+
+The manual **Reliability Trial** GitHub Actions workflow runs the real Flask API, outbox
+worker, migrations, and PostgreSQL on a GitHub-hosted runner. A signed device simulator sends
+sequential readings while the runner repeatedly stops and restarts the API and worker and
+replays deliberately discarded acknowledgements. The run fails unless PostgreSQL contains the
+complete sequence range exactly once and every transactional-outbox event reaches `published`.
+
+The default run exercises 50,000 readings across six API outages, four worker outages, and 12
+idempotent acknowledgement replays. Its artifact contains a JSON result plus API and worker logs;
+the Actions summary links the result to the tested Git revision.
+
+This trial is useful backend reliability evidence. It does **not** exercise a physical board,
+sensor, flash storage, DNS, TLS, AWS, or a long-duration deployment, and its generated summary
+states those limits explicitly.
+
+For a local PostgreSQL environment, the equivalent command is:
+
+```bash
+python -m soak.run_software \
+  --readings 50000 \
+  --api-faults 6 \
+  --worker-faults 4 \
+  --acknowledgement-replays 12 \
+  --output artifacts/software-trial/result.json \
+  --summary-output artifacts/software-trial/summary.md
+```
+
+## Supervised hardware soak
 
 This harness records board diagnostics, supervised fault injections, and a database sequence audit as one evidence bundle. It does not turn an unrun plan into a reliability claim: the result passes only after the full configured duration, every checkpoint is confirmed, the device queue drains, and PostgreSQL contains the complete expected sequence range.
 

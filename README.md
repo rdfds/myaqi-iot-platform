@@ -1,6 +1,7 @@
 # myAQI IoT Platform
 
 [![CI](https://github.com/rdfds/myaqi-iot-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/rdfds/myaqi-iot-platform/actions/workflows/ci.yml)
+[![Reliability Trial](https://github.com/rdfds/myaqi-iot-platform/actions/workflows/reliability-trial.yml/badge.svg)](https://github.com/rdfds/myaqi-iot-platform/actions/workflows/reliability-trial.yml)
 
 myAQI is an end-to-end indoor air-quality system spanning CircuitPython sensor firmware, local Wi-Fi provisioning, authenticated ingestion, durable measurement storage, asynchronous event delivery, and operational telemetry. Its device and provisioning foundation supported a 14-school rollout; the maintained code path carries each PM2.5 reading from the sensor to PostgreSQL through a retry-safe protocol.
 
@@ -129,6 +130,11 @@ cd .. && pytest firmware_tests scripts/tests soak/tests
 
 The suite covers signature tampering, stale timestamps, payload bounds, idempotency conflicts, sequence deduplication, atomic outbox creation, concurrent replay, worker ownership and recovery, device runtime diagnostics, SNS event envelopes, health and queue metrics, persistent firmware state, deployment task rendering, soak evidence verification, and a lost-response replay through the real Flask ingestion route.
 
+The manually triggered **Reliability Trial** adds an integration-level software test: it ingests
+sequential signed readings through the real processes and PostgreSQL while interrupting the API
+and worker and replaying acknowledgements. Each run publishes a revision-linked result and logs.
+See [`soak/README.md`](soak/README.md) for its exact scope and the separate hardware procedure.
+
 ## Benchmark harness
 
 The load generator reports throughput and p50/p95/p99 latency for a specified environment; it does not embed a universal performance claim.
@@ -159,7 +165,7 @@ docs/                  Architecture, security, operations, and decisions
 infra/terraform/       AWS network, RDS, ECS, TLS, canaries, alarms, and OIDC
 legacy/                Retired provider-specific adapter retained for traceability
 scripts/deploy/         Auditable ECS task-revision rendering
-soak/                   Serial capture, fault scenarios, and evidence verification
+soak/                   Automated software and supervised hardware reliability evidence
 compose.yaml           PostgreSQL, migration, API, and worker services
 ```
 
@@ -167,4 +173,11 @@ compose.yaml           PostgreSQL, migration, API, and worker services
 
 Secrets belong in environment variables, device-local configuration, or a deployment secret manager. Device benchmark credentials, local databases, upload state, and `.env` files are ignored.
 
-The provider-specific adapter under `legacy/` is not part of the runtime. The integrated firmware/backend protocol is host-tested, but target-board networking, flash durability, the physical sensor path, the AWS apply, DNS validation, and the full supervised soak still require execution in their real environments. The Terraform and workflow implement TLS termination, managed database credentials, backups, staged rollouts, external health checks, dashboards, alarms, and SNS publishing; they do not create historical uptime or incident evidence by existing in Git. See [`docs/security.md`](docs/security.md) and [`docs/runbook.md`](docs/runbook.md).
+The provider-specific adapter under `legacy/` is not part of the runtime. The automated software
+trial exercises real local processes and PostgreSQL, not a sensor board or AWS account.
+Target-board networking, flash durability, the physical sensor path, the AWS apply, DNS
+validation, and the full supervised soak still require execution in their real environments. The
+Terraform and workflow implement TLS termination, managed database credentials, backups, staged
+rollouts, external health checks, dashboards, alarms, and SNS publishing; they do not create
+historical uptime or incident evidence by existing in Git. See [`docs/security.md`](docs/security.md)
+and [`docs/runbook.md`](docs/runbook.md).

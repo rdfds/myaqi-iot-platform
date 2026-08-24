@@ -1,0 +1,92 @@
+name: Reliability Trial
+
+on:
+  workflow_dispatch:
+    inputs:
+      readings:
+        description: Number of sequential readings to ingest
+        required: true
+        default: "50000"
+        type: choice
+        options:
+          - "10000"
+          - "25000"
+          - "50000"
+          - "100000"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: myaqi-reliability-trial
+  cancel-in-progress: false
+
+jobs:
+  software-fault-injection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: myaqi_trial
+          POSTGRES_USER: myaqi
+          POSTGRES_PASSWORD: myaqi_trial
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U myaqi -d myaqi_trial"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://myaqi:myaqi_trial@localhost:5432/myaqi_trial
+      DEVICE_MASTER_KEY: reliability-trial-only-master-key-2026
+      APP_ENVIRONMENT: github-reliability-trial
+      APP_REVISION: ${{ github.sha }}
+      LOG_LEVEL: INFO
+      OUTBOX_BATCH_SIZE: "100"
+      OUTBOX_HEALTH_INTERVAL_SECONDS: "5"
+      TRIAL_READINGS: ${{ inputs.readings }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install the backend and trial tools
+        run: pip install -e "backend[dev]"
+
+      - name: Apply PostgreSQL migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Run the software fault-injection trial
+        run: >-
+          python -m soak.run_software
+          --readings "$TRIAL_READINGS"
+          --batch-size 100
+          --api-faults 6
+          --worker-faults 4
+          --acknowledgement-replays 12
+          --outage-buffer-batches 5
+          --outage-seconds 1.5
+          --revision "$GITHUB_SHA"
+          --output artifacts/result.json
+          --summary-output artifacts/summary.md
+
+      - name: Publish the scoped trial summary
+        if: always() && hashFiles('artifacts/summary.md') != ''
+        run: sed -n '1,120p' artifacts/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: software-reliability-${{ github.run_id }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
