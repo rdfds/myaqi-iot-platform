@@ -22,6 +22,8 @@ SQLite is supported for local development and fast tests. PostgreSQL is the depl
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | local SQLite file | SQLAlchemy connection URL |
+| `DB_HOST`, `DB_PORT`, `DB_NAME` | unset | Managed PostgreSQL location when `DATABASE_URL` is absent |
+| `DB_USER`, `DB_PASSWORD` | unset | Managed database credentials; ECS injects RDS secret JSON fields |
 | `DEVICE_MASTER_KEY` | unsafe development value | Root key for versioned per-device secrets |
 | `AUTH_CLOCK_SKEW_SECONDS` | `300` | Accepted device timestamp window |
 | `MAX_BATCH_SIZE` | `500` | Maximum readings per ingestion request |
@@ -29,7 +31,12 @@ SQLite is supported for local development and fast tests. PostgreSQL is the depl
 | `OUTBOX_BATCH_SIZE` | `100` | Events claimed by a worker in one transaction |
 | `OUTBOX_MAX_ATTEMPTS` | `8` | Failures before dead-letter state |
 | `OUTBOX_LOCK_TIMEOUT_SECONDS` | `60` | Age at which an abandoned processing lock is reclaimable |
+| `OUTBOX_HEALTH_INTERVAL_SECONDS` | `60` | Structured queue-health heartbeat interval |
+| `OUTBOX_SNS_TOPIC_ARN` | unset | SNS destination; unset uses the local logging publisher |
 | `LOG_LEVEL` | `INFO` | Structured application log level |
+| `APP_ENVIRONMENT` | `development` | Environment included in health metadata |
+| `SERVICE_VERSION` | `0.1.0-dev` | Human-readable release version |
+| `APP_REVISION` | `local` | Immutable Git revision included in health metadata |
 
 ## Schema changes
 
@@ -68,4 +75,17 @@ alembic check
 
 `myaqi-worker` claims a bounded batch, commits the claims, then publishes each event. A successful handoff marks the row `published`. A failed handoff clears the lock and schedules exponential backoff; the final failure moves the event to `dead` for operator review.
 
-The included `LoggingPublisher` is deliberately narrow: it proves worker coordination and failure handling without pretending that stdout is a production message bus. Replace that class with the deployment's alert or queue adapter.
+`OUTBOX_SNS_TOPIC_ARN` selects the production SNS publisher. Without it, the worker uses the deliberately narrow logging publisher for local development. Both adapters preserve event ID and type; only an ownership-checked database transaction marks a claimed event published.
+
+The worker logs queue counts, oldest pending age, and dead events on a fixed heartbeat, completes an in-flight batch after `SIGTERM`, then exits. The AWS deployment converts these JSON fields into CloudWatch metrics and alarms.
+
+## Operator commands
+
+```bash
+myaqi-admin inspect-device school-001
+myaqi-admin verify-sequence-range school-001 --start 1 --end 500
+myaqi-admin list-dead-events --limit 100
+myaqi-admin replay-event <event-id>
+```
+
+These commands run inside the trusted network boundary and avoid exposing a public admin API. See [`../docs/runbook.md`](../docs/runbook.md) for diagnosis and replay constraints.

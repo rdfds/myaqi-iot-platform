@@ -9,7 +9,7 @@
 5. PostgreSQL inserts unseen `(device_id, sequence)` rows and ignores sequences already committed by an earlier request.
 6. The API stores the response and a `measurements.ingested` outbox event in the same transaction.
 7. The device removes the batch only after a `202` response accounts for every reading as accepted or duplicate.
-8. Workers claim outbox events with `FOR UPDATE SKIP LOCKED`, hand them to a downstream adapter, and record success or scheduled retry.
+8. Workers claim outbox events with `FOR UPDATE SKIP LOCKED`, publish an identity-preserving envelope to Amazon SNS, and record success or scheduled retry.
 
 ## Boundaries and failure behavior
 
@@ -19,18 +19,18 @@
 | Ingestion API | Authentication, validation, idempotency, persistence | Reject an invalid batch atomically; never acknowledge before commit |
 | PostgreSQL | Source of truth for devices, requests, readings, and outbox | Unique constraints enforce both deduplication layers under concurrency |
 | Outbox worker | Durable downstream handoff | Exclusive claims, stale-lock recovery, bounded retry, dead-letter state |
-| Downstream publisher | Alerts, queues, or analytics | May fail without rolling back accepted sensor data |
-| Prometheus/log collector | Operational visibility | Telemetry failure does not alter ingestion correctness |
+| Amazon SNS publisher | Alerts, queues, or analytics | May fail without rolling back accepted sensor data |
+| Prometheus/CloudWatch | Operational visibility and rollback alarms | Telemetry failure does not alter ingestion correctness |
 
 ## Device persistence
 
-The firmware state contains `next_sequence`, `pending`, and `dropped_readings`. Every mutation is written and synced to a temporary file, the last complete primary is retained as a backup, and the temporary file is promoted and synced as primary. On boot, a malformed primary falls back to the last complete backup. If no valid primary, backup, or temporary state remains, ingestion fails closed instead of resetting the sequence and silently reusing device identities.
+The firmware state contains `next_sequence`, `pending`, `dropped_readings`, upload attempt/failure counters, last HTTP status, and the last acknowledged sequence. Every mutation is written and synced to a temporary file, the last complete primary is retained as a backup, and the temporary file is promoted and synced as primary. On boot, a malformed primary falls back to the last complete backup. If no valid primary, backup, or temporary state remains, ingestion fails closed instead of resetting the sequence and silently reusing device identities.
 
 The queue is deliberately bounded because flash is finite. When it is full, the oldest reading is removed and `dropped_readings` increments. That counter makes prolonged-offline data loss explicit rather than silent.
 
 ## Data model
 
-- `devices`: active device identities and key versions
+- `devices`: active device identities, key versions, last-seen time, firmware release, and highest reported sequence
 - `ingest_requests`: immutable `(device, idempotency key, payload hash)` records plus the committed response
 - `measurements`: sensor observations unique by `(device, sequence)`
 - `outbox_events`: downstream work with claim, retry, and publication state
@@ -43,6 +43,10 @@ Workers use a separate transaction to claim rows, perform external work without 
 
 ## Deployment topology
 
-`compose.yaml` provides a reproducible local topology. A deployment should run migrations as a release step, place API instances behind TLS, use managed PostgreSQL, export metrics and logs, and replace the included logging publisher with an explicit alert, queue, or analytics adapter.
+`compose.yaml` provides a reproducible local topology. [`infra/terraform/`](../infra/terraform/) defines the AWS topology: two private application subnets, isolated database subnets, RDS PostgreSQL, Fargate API/worker/migration tasks, ACM TLS, paired target groups for ECS-managed canaries, SNS publishing, CloudWatch alarms, and a Route 53 external health check. The protected GitHub workflow registers immutable task revisions and runs migrations before shifting traffic.
+
+The API exposes Prometheus metrics from one threaded Gunicorn process per container; horizontal scale occurs at the ECS task boundary. This avoids presenting incomplete per-worker counters from a multi-process in-container registry. CloudWatch derives release alarms from ALB/RDS/ECS metrics and the structured API/worker logs.
+
+The infrastructure root is a deployment specification, not evidence that resources or availability history exist. Runtime evidence begins only after Terraform apply, DNS validation, a successful deployment, and external observations.
 
 The retired provider-specific adapter remains under `legacy/` for implementation traceability and is outside this runtime path.

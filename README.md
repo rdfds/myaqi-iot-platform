@@ -11,13 +11,14 @@ flowchart LR
     Sensor["PM2.5 sensor"] --> Firmware["CircuitPython firmware"]
     Setup["Local Wi-Fi setup"] --> Firmware
     Firmware --> Queue["Persistent device queue"]
-    Queue -->|"HMAC-signed batches"| API["Flask ingestion API"]
-    API -->|"one transaction"| Measurements[("PostgreSQL measurements")]
+    Queue -->|"HMAC + HTTPS"| ALB["AWS load balancer"]
+    ALB -->|"10% canary"| API["Flask API on ECS Fargate"]
+    API -->|"one transaction"| Measurements[("RDS PostgreSQL")]
     API -->|"one transaction"| Outbox[("Transactional outbox")]
     Outbox --> Worker["Concurrent outbox workers"]
-    Worker --> Consumers["Alerts / downstream consumers"]
+    Worker --> Consumers["Amazon SNS"]
     API --> Metrics["Prometheus metrics"]
-    Worker --> Logs["Structured logs"]
+    Worker --> Logs["CloudWatch logs and alarms"]
 ```
 
 A reading follows one continuous path:
@@ -40,6 +41,7 @@ The system enforces these invariants:
 4. Measurements and their `measurements.ingested` event commit in the same database transaction.
 5. A lost HTTP response leaves the device queue intact; the next boot safely replays the same batch.
 6. Workers use exclusive claims, retry with backoff, recover abandoned work, and retain exhausted events for operator review.
+7. Every successful request updates the device heartbeat, firmware release, and highest reported sequence for fleet diagnosis.
 
 Database constraints and integration tests enforce these rules under failure and concurrency.
 
@@ -77,9 +79,17 @@ The deployed API URL must use HTTPS. Localhost HTTP is accepted only by the host
 
 Operational endpoints:
 
-- `GET /health/live` — process liveness
-- `GET /health/ready` — database readiness
+- `GET /health/live` — process, environment, version, and Git revision
+- `GET /health/ready` — database readiness and active Git revision
 - `GET /metrics` — Prometheus exposition format
+
+## AWS operations path
+
+[`infra/terraform/`](infra/terraform/) defines the production-shaped AWS boundary: private Fargate API and worker tasks, encrypted RDS PostgreSQL with an AWS-managed password, immutable ECR images, ACM TLS, two target groups for native 10% canaries, SNS event delivery, CloudWatch dashboards and rollback alarms, and a global Route 53 availability check.
+
+The deployment workflow runs only after `main` CI succeeds and a protected GitHub environment approves the exact tested SHA. It uses OIDC rather than stored AWS access keys, gates critical image findings, runs migrations before service updates, verifies the public health revision, and restores prior task definitions on failure.
+
+Infrastructure code is not deployment evidence. The AWS root has been statically validated, but this repository does not claim that an account currently hosts it. Preserve a successful deployment summary, alarm history, and a completed [`soak/`](soak/) report before making cloud, uptime, or seven-day hardware claims.
 
 ## Ingestion protocol
 
@@ -111,13 +121,13 @@ CI starts PostgreSQL 16, applies every Alembic migration, and runs:
 
 ```bash
 pip install -e "backend[dev]"
-ruff check backend firmware_tests AdafruitCode/myaqi_client.py \
+ruff check backend firmware_tests scripts soak AdafruitCode/myaqi_client.py \
   --config backend/pyproject.toml
 cd backend && alembic upgrade head && pytest --cov=myaqi_backend
-cd .. && pytest firmware_tests
+cd .. && pytest firmware_tests scripts/tests soak/tests
 ```
 
-The suite covers signature tampering, stale timestamps, payload bounds, idempotency conflicts, sequence deduplication, atomic outbox creation, concurrent replay, worker ownership and recovery, health and metrics, persistent firmware state, and a lost-response replay through the real Flask ingestion route.
+The suite covers signature tampering, stale timestamps, payload bounds, idempotency conflicts, sequence deduplication, atomic outbox creation, concurrent replay, worker ownership and recovery, device runtime diagnostics, SNS event envelopes, health and queue metrics, persistent firmware state, deployment task rendering, soak evidence verification, and a lost-response replay through the real Flask ingestion route.
 
 ## Benchmark harness
 
@@ -146,7 +156,10 @@ backend/
   tests/               Unit, integration, and PostgreSQL concurrency tests
 firmware_tests/        Host-side protocol, persistence, and end-to-end tests
 docs/                  Architecture, security, operations, and decisions
+infra/terraform/       AWS network, RDS, ECS, TLS, canaries, alarms, and OIDC
 legacy/                Retired provider-specific adapter retained for traceability
+scripts/deploy/         Auditable ECS task-revision rendering
+soak/                   Serial capture, fault scenarios, and evidence verification
 compose.yaml           PostgreSQL, migration, API, and worker services
 ```
 
@@ -154,4 +167,4 @@ compose.yaml           PostgreSQL, migration, API, and worker services
 
 Secrets belong in environment variables, device-local configuration, or a deployment secret manager. Device benchmark credentials, local databases, upload state, and `.env` files are ignored.
 
-The provider-specific adapter under `legacy/` is not part of the runtime. The integrated firmware/backend protocol is host-tested, but target-board networking, flash durability, and the physical sensor path still require hardware validation before another deployment. Production operation also requires TLS termination, managed secret rotation, backups, rate limits, dashboards, and a concrete downstream publisher. See [`docs/security.md`](docs/security.md) and [`docs/runbook.md`](docs/runbook.md).
+The provider-specific adapter under `legacy/` is not part of the runtime. The integrated firmware/backend protocol is host-tested, but target-board networking, flash durability, the physical sensor path, the AWS apply, DNS validation, and the full supervised soak still require execution in their real environments. The Terraform and workflow implement TLS termination, managed database credentials, backups, staged rollouts, external health checks, dashboards, alarms, and SNS publishing; they do not create historical uptime or incident evidence by existing in Git. See [`docs/security.md`](docs/security.md) and [`docs/runbook.md`](docs/runbook.md).
