@@ -234,6 +234,16 @@ resource "aws_ecs_service" "api" {
     rollback = true
   }
 
+  alarms {
+    enable   = true
+    rollback = true
+    alarm_names = [
+      aws_cloudwatch_metric_alarm.application_5xx.alarm_name,
+      aws_cloudwatch_metric_alarm.unhealthy_targets_primary.alarm_name,
+      aws_cloudwatch_metric_alarm.unhealthy_targets_alternate.alarm_name,
+    ]
+  }
+
   network_configuration {
     assign_public_ip = false
     subnets          = aws_subnet.application[*].id
