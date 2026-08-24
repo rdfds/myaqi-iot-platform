@@ -1,0 +1,21 @@
+aws_region  = "us-east-1"
+environment = "staging"
+
+domain_name       = "api.myaqi.example.org"
+route53_zone_id   = "Z0000000000000000000"
+alarm_email       = "operator@example.org"
+initial_image_tag = "bootstrap0"
+
+device_master_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:myaqi-staging-device-master-abc123"
+
+# Keep both services at zero for the first infrastructure apply. The protected
+# deployment workflow pushes the first image, migrates the database, and scales
+# these services. Set the normal counts before the next Terraform apply.
+api_desired_count    = 0
+worker_desired_count = 0
+
+database_multi_az            = false
+database_deletion_protection = true
+
+github_repository  = "rdfds/myaqi-iot-platform"
+github_environment = "aws-staging"

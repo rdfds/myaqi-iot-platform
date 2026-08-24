@@ -43,10 +43,12 @@ The API URL must use HTTPS on a device. The secret is a credential: do not commi
 
 The state writer keeps a last-complete backup so an interrupted flash write can recover on the next boot. The queue is bounded by `max_buffered_readings`; once full, the oldest reading is discarded and the persisted `dropped_readings` counter increases.
 
+Each upload sends the firmware release header. The board also emits a structured `MYAQI_DIAGNOSTIC` serial record containing queue bounds, drop count, upload attempts/failures, last HTTP status, and last acknowledged sequence. Provisioning never prints the submitted Wi-Fi body or full configuration to serial.
+
 Host-side tests cover signing compatibility, queue recovery, retry behavior, and a simulated lost response through the real Flask route. Run them from the repository root:
 
 ```bash
 pytest firmware_tests
 ```
 
-These tests do not replace a target-board soak test. Verify NTP, TLS memory use, filesystem durability, sensor wiring, and power-loss recovery on the exact CircuitPython board and version before deployment.
+These tests do not replace a target-board soak test. [`../soak/`](../soak/) captures only structured diagnostics across serial reconnects, schedules supervised Wi-Fi/service/power faults, and cross-checks the final interval against PostgreSQL. Run it on the exact CircuitPython board and release; an unrun scenario is not reliability evidence.

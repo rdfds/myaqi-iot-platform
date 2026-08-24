@@ -1,0 +1,250 @@
+name: Deploy AWS
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: myaqi-aws-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success') &&
+      vars.AWS_REGION != '' &&
+      vars.AWS_ACCOUNT_ID != '' &&
+      vars.AWS_DEPLOY_ROLE_ARN != '' &&
+      vars.DEPLOYMENT_NAME != '' &&
+      vars.ECR_REPOSITORY != '' &&
+      vars.API_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: aws-staging
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      DEPLOYMENT_NAME: ${{ vars.DEPLOYMENT_NAME }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      API_URL: ${{ vars.API_URL }}
+      API_DESIRED_COUNT: ${{ vars.API_DESIRED_COUNT || '2' }}
+      WORKER_DESIRED_COUNT: ${{ vars.WORKER_DESIRED_COUNT || '1' }}
+
+    steps:
+      - name: Check out the tested revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Resolve immutable revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Configure short-lived AWS credentials
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+          role-session-name: myaqi-${{ github.run_id }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Build and push the ARM64 release image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.revision.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Enforce the critical-vulnerability gate
+        env:
+          REVISION: ${{ steps.revision.outputs.sha }}
+        run: |
+          set -euo pipefail
+          aws ecr wait image-scan-complete \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-id imageTag="$REVISION"
+          critical=$(aws ecr describe-image-scan-findings \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-id imageTag="$REVISION" \
+            --query 'imageScanFindings.findingSeverityCounts.CRITICAL || `0`' \
+            --output text)
+          test "$critical" = "0"
+
+      - name: Register API, worker, and migration revisions
+        id: tasks
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.revision.outputs.sha }}
+          REVISION: ${{ steps.revision.outputs.sha }}
+        run: |
+          set -euo pipefail
+          register_revision() {
+            component="$1"
+            container="$2"
+            family="${DEPLOYMENT_NAME}-${component}"
+            aws ecs describe-task-definition \
+              --task-definition "$family" > "${component}-current.json"
+            python scripts/deploy/render_task_definition.py \
+              --input "${component}-current.json" \
+              --output "${component}-next.json" \
+              --container "$container" \
+              --image "$IMAGE" \
+              --revision "$REVISION"
+            task_arn=$(aws ecs register-task-definition \
+              --cli-input-json "file://${component}-next.json" \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text)
+            echo "${component}=${task_arn}" >> "$GITHUB_OUTPUT"
+          }
+
+          echo "previous_api=$(aws ecs describe-services \
+            --cluster "$DEPLOYMENT_NAME" \
+            --services "${DEPLOYMENT_NAME}-api" \
+            --query 'services[0].taskDefinition' --output text)" >> "$GITHUB_OUTPUT"
+          echo "previous_worker=$(aws ecs describe-services \
+            --cluster "$DEPLOYMENT_NAME" \
+            --services "${DEPLOYMENT_NAME}-worker" \
+            --query 'services[0].taskDefinition' --output text)" >> "$GITHUB_OUTPUT"
+          register_revision api api
+          register_revision worker worker
+          register_revision migration migration
+
+      - name: Apply the database migration
+        env:
+          MIGRATION_TASK: ${{ steps.tasks.outputs.migration }}
+        run: |
+          set -euo pipefail
+          subnets=$(aws ec2 describe-subnets \
+            --filters "Name=tag:Name,Values=${DEPLOYMENT_NAME}-application-*" \
+            --query 'Subnets[].SubnetId' --output text | tr '\t' ',')
+          security_group=$(aws ec2 describe-security-groups \
+            --filters "Name=group-name,Values=${DEPLOYMENT_NAME}-worker" \
+            --query 'SecurityGroups[0].GroupId' --output text)
+          test -n "$subnets"
+          test "$security_group" != "None"
+          task_arn=$(aws ecs run-task \
+            --cluster "$DEPLOYMENT_NAME" \
+            --launch-type FARGATE \
+            --task-definition "$MIGRATION_TASK" \
+            --network-configuration \
+              "awsvpcConfiguration={subnets=[$subnets],securityGroups=[$security_group],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          test "$task_arn" != "None"
+          aws ecs wait tasks-stopped --cluster "$DEPLOYMENT_NAME" --tasks "$task_arn"
+          exit_code=$(aws ecs describe-tasks \
+            --cluster "$DEPLOYMENT_NAME" --tasks "$task_arn" \
+            --query 'tasks[0].containers[?name==`migration`].exitCode | [0]' \
+            --output text)
+          test "$exit_code" = "0"
+
+      - name: Deploy worker, then API canary
+        env:
+          API_TASK: ${{ steps.tasks.outputs.api }}
+          WORKER_TASK: ${{ steps.tasks.outputs.worker }}
+        run: |
+          set -euo pipefail
+          wait_for_service() {
+            service="$1"
+            for attempt in $(seq 1 80); do
+              status=$(aws ecs describe-services \
+                --cluster "$DEPLOYMENT_NAME" \
+                --services "$service" \
+                --query 'services[0].[desiredCount,runningCount,pendingCount,length(deployments)]' \
+                --output text)
+              read -r desired running pending deployments <<< "$status"
+              if test "$running" = "$desired" && test "$pending" = "0" && test "$deployments" = "1"; then
+                return 0
+              fi
+              echo "Waiting for $service: desired=$desired running=$running pending=$pending deployments=$deployments (attempt $attempt/80)"
+              sleep 15
+            done
+            aws ecs describe-services \
+              --cluster "$DEPLOYMENT_NAME" \
+              --services "$service" \
+              --query 'services[0].events[0:10]' \
+              --output table
+            return 1
+          }
+
+          aws ecs update-service \
+            --cluster "$DEPLOYMENT_NAME" \
+            --service "${DEPLOYMENT_NAME}-worker" \
+            --desired-count "$WORKER_DESIRED_COUNT" \
+            --task-definition "$WORKER_TASK" >/dev/null
+          wait_for_service "${DEPLOYMENT_NAME}-worker"
+
+          aws ecs update-service \
+            --cluster "$DEPLOYMENT_NAME" \
+            --service "${DEPLOYMENT_NAME}-api" \
+            --desired-count "$API_DESIRED_COUNT" \
+            --task-definition "$API_TASK" >/dev/null
+          wait_for_service "${DEPLOYMENT_NAME}-api"
+
+      - name: Smoke-test the deployed revision
+        env:
+          REVISION: ${{ steps.revision.outputs.sha }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail --silent --show-error \
+            --retry 6 --retry-delay 5 --retry-all-errors \
+            "${API_URL}/health/ready")
+          test "$(jq -r '.revision' <<< "$response")" = "$REVISION"
+          alarm_count=$(aws cloudwatch describe-alarms \
+            --alarm-name-prefix "${DEPLOYMENT_NAME}-" \
+            --state-value ALARM \
+            --query 'length(MetricAlarms)' --output text)
+          test "$alarm_count" = "0"
+
+      - name: Roll back application tasks after a failed release
+        if: failure() && steps.tasks.outputs.previous_api != ''
+        env:
+          PREVIOUS_API: ${{ steps.tasks.outputs.previous_api }}
+          PREVIOUS_WORKER: ${{ steps.tasks.outputs.previous_worker }}
+        run: |
+          aws ecs update-service \
+            --cluster "$DEPLOYMENT_NAME" \
+            --service "${DEPLOYMENT_NAME}-api" \
+            --task-definition "$PREVIOUS_API" >/dev/null
+          aws ecs update-service \
+            --cluster "$DEPLOYMENT_NAME" \
+            --service "${DEPLOYMENT_NAME}-worker" \
+            --task-definition "$PREVIOUS_WORKER" >/dev/null
+
+      - name: Record deployment summary
+        if: success()
+        env:
+          REVISION: ${{ steps.revision.outputs.sha }}
+        run: |
+          {
+            echo "### AWS deployment"
+            echo "- Revision: \`$REVISION\`"
+            echo "- Image: \`${ECR_REPOSITORY}:$REVISION\`"
+            echo "- Migration: completed"
+            echo "- Worker: stable"
+            echo "- API: 10% canary, then full traffic after bake"
+            echo "- Smoke test: \`${API_URL}/health/ready\`"
+          } >> "$GITHUB_STEP_SUMMARY"

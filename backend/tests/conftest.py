@@ -67,21 +67,25 @@ def signed_post() -> Callable[..., object]:
         idempotency_key: str = "request-0000000001",
         timestamp: str | None = None,
         secret: bytes | None = None,
+        firmware_version: str | None = None,
     ):
         path = f"/v1/devices/{device_id}/measurements:batch"
         body = json.dumps(payload, separators=(",", ":")).encode()
         request_timestamp = timestamp or str(int(time.time()))
         device_secret = secret or derive_device_secret(TEST_MASTER_KEY, device_id)
         signature = sign_request(device_secret, request_timestamp, "POST", path, body)
+        headers = {
+            "Idempotency-Key": idempotency_key,
+            "X-Device-Timestamp": request_timestamp,
+            "X-Device-Signature": signature,
+        }
+        if firmware_version is not None:
+            headers["X-Firmware-Version"] = firmware_version
         return client.post(
             path,
             data=body,
             content_type="application/json",
-            headers={
-                "Idempotency-Key": idempotency_key,
-                "X-Device-Timestamp": request_timestamp,
-                "X-Device-Signature": signature,
-            },
+            headers=headers,
         )
 
     return post

@@ -91,7 +91,6 @@ def loadConfigFile():
 def writeConfigToFile():
     try:
         jsonString = json.dumps(CONFIG_DATA)
-        print(jsonString)
         with open("/config.json", "w") as file:
             file.write(jsonString)
     except:
@@ -178,8 +177,6 @@ def setupWebServer():
 
     def updateCreds(request: HTTPRequest):
         print("Updating creds...")
-        #print(request.body)
-        print(request.body.decode("utf-8"))
         ssid = request.body.decode("utf-8").split("&")[0].split("=")[1]
         password = request.body.decode("utf-8").split("&")[1].split("=")[1]
 
@@ -187,7 +184,6 @@ def setupWebServer():
         CONFIG_DATA['ssid'] = ssid
         CONFIG_DATA['password'] = password
         removeError() # calling removeError will save config file
-        print(CONFIG_DATA)
 
 
 
@@ -258,6 +254,7 @@ def setupIngestionClient():
         max_pending=CONFIG_DATA.get("max_buffered_readings", 120),
     )
     print("Buffered readings:", ingestion_client.pending_count)
+    print("MYAQI_DIAGNOSTIC", json.dumps(ingestion_client.diagnostics()))
     if clock_synchronized:
         try:
             result = ingestion_client.flush(max_batches=3)
@@ -438,6 +435,7 @@ def updateAQIInfo():
                     print("Clock resynchronization failed:", str(clock_error))
         except Exception as error:
             print("Reading remains buffered:", str(error))
+        print("MYAQI_DIAGNOSTIC", json.dumps(ingestion_client.diagnostics()))
 
         #print()
         #print("Concentration Units (standard)")

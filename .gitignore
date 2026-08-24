@@ -17,3 +17,9 @@ coverage.xml
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+soak/results/
+**/.terraform/*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+backend.hcl

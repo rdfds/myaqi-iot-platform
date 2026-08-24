@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir .
 USER myaqi
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind=0.0.0.0:8000", "--workers=2", "--threads=4", "--access-logfile=-", "myaqi_backend.wsgi:app"]
+CMD ["gunicorn", "--bind=0.0.0.0:8000", "--workers=1", "--threads=8", "--access-logfile=-", "myaqi_backend.wsgi:app"]

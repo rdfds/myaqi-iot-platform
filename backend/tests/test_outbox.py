@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+import json
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
+import myaqi_backend.outbox as outbox_module
+from myaqi_backend.config import Settings
 from myaqi_backend.models import OutboxEvent
 from myaqi_backend.outbox import (
     ClaimedEvent,
+    SnsPublisher,
+    build_publisher,
     claim_events,
     mark_failed,
     mark_published,
+    outbox_health,
     process_once,
 )
 
@@ -131,3 +138,86 @@ def test_process_once_schedules_failed_publish(app) -> None:
         assert event.status == "pending"
         assert event.attempts == 1
         assert event.locked_by is None
+
+
+def test_outbox_health_reports_backlog_age_and_dead_events(app) -> None:
+    event_id = add_event(app)
+    factory = app.extensions["myaqi_session_factory"]
+    checked_at = datetime.now(UTC) + timedelta(seconds=30)
+
+    initial = outbox_health(factory, now=checked_at)
+    assert initial["pending"] == 1
+    assert initial["processing"] == 0
+    assert initial["dead"] == 0
+    assert initial["oldest_pending_seconds"] >= 29
+
+    claim_events(
+        factory,
+        worker_id="worker-a",
+        batch_size=1,
+        lock_timeout_seconds=60,
+    )
+    mark_failed(
+        factory,
+        event_id=event_id,
+        worker_id="worker-a",
+        error=RuntimeError("permanent failure"),
+        max_attempts=1,
+    )
+    failed = outbox_health(factory, now=checked_at)
+    assert failed["pending"] == 0
+    assert failed["dead"] == 1
+    assert failed["oldest_pending_seconds"] == 0
+
+
+def test_sns_publisher_preserves_event_identity_and_type() -> None:
+    calls: list[dict[str, object]] = []
+
+    class RecordingSnsClient:
+        def publish(self, **kwargs) -> object:
+            calls.append(kwargs)
+            return {"MessageId": "message-1"}
+
+    publisher = SnsPublisher(
+        "arn:aws:sns:us-east-1:123456789012:myaqi-events",
+        client=RecordingSnsClient(),
+    )
+    publisher.publish(
+        ClaimedEvent(
+            id="event-1",
+            event_type="measurements.ingested",
+            payload={"accepted": 2},
+        )
+    )
+
+    assert calls[0]["TopicArn"] == "arn:aws:sns:us-east-1:123456789012:myaqi-events"
+    assert json.loads(str(calls[0]["Message"])) == {
+        "event_id": "event-1",
+        "event_type": "measurements.ingested",
+        "payload": {"accepted": 2},
+    }
+    assert calls[0]["MessageAttributes"] == {
+        "event_type": {
+            "DataType": "String",
+            "StringValue": "measurements.ingested",
+        }
+    }
+
+
+def test_publisher_selection_uses_sns_only_when_configured(monkeypatch) -> None:
+    local_settings = replace(Settings.from_env(), outbox_sns_topic_arn=None)
+    assert type(build_publisher(local_settings)).__name__ == "LoggingPublisher"
+
+    monkeypatch.setattr(
+        outbox_module,
+        "SnsPublisher",
+        lambda topic_arn: ("sns", topic_arn),
+    )
+    cloud_settings = replace(
+        local_settings,
+        outbox_sns_topic_arn="arn:aws:sns:us-east-1:123456789012:myaqi-events",
+    )
+    assert build_publisher(cloud_settings) == (
+        "sns",
+        "arn:aws:sns:us-east-1:123456789012:myaqi-events",
+    )

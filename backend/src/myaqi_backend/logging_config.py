@@ -22,6 +22,11 @@ class JsonFormatter(logging.Formatter):
             "device_id",
             "event_id",
             "worker_id",
+            "signal",
+            "pending",
+            "processing",
+            "dead",
+            "oldest_pending_seconds",
         ):
             value = getattr(record, field, None)
             if value is not None:

@@ -16,6 +16,7 @@ from myaqi_backend.errors import ApiError
 from myaqi_backend.ingestion import blueprint as ingestion_blueprint
 from myaqi_backend.logging_config import configure_logging
 from myaqi_backend.metrics import Metrics
+from myaqi_backend.outbox import outbox_health
 
 
 def create_app(
@@ -97,17 +98,30 @@ def create_app(
 
     @app.get("/health/live")
     def live() -> tuple[dict[str, str], int]:
-        return {"status": "ok"}, 200
+        return {
+            "status": "ok",
+            "service": "myaqi-api",
+            "version": str(app.config["SERVICE_VERSION"]),
+            "revision": str(app.config["APP_REVISION"]),
+            "environment": str(app.config["APP_ENVIRONMENT"]),
+        }, 200
 
     @app.get("/health/ready")
     def ready() -> tuple[dict[str, str], int]:
         with database_engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        return {"status": "ready"}, 200
+        return {
+            "status": "ready",
+            "revision": str(app.config["APP_REVISION"]),
+        }, 200
 
     @app.get("/metrics")
     def metrics() -> Response:
-        registry = app.extensions["myaqi_metrics"].registry
+        app_metrics = app.extensions["myaqi_metrics"]
+        app_metrics.update_outbox_health(
+            outbox_health(app.extensions["myaqi_session_factory"])
+        )
+        registry = app_metrics.registry
         return Response(generate_latest(registry), mimetype=CONTENT_TYPE_LATEST)
 
     return app
