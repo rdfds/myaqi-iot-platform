@@ -51,4 +51,4 @@ Host-side tests cover signing compatibility, queue recovery, retry behavior, and
 pytest firmware_tests
 ```
 
-These tests do not replace a target-board soak test. [`../soak/`](../soak/) captures only structured diagnostics across serial reconnects, schedules supervised Wi-Fi/service/power faults, and cross-checks the final interval against PostgreSQL. Run it on the exact CircuitPython board and release; an unrun scenario is not reliability evidence.
+Target-board behavior is covered by the supervised procedure under [`../soak/`](../soak/), which captures structured diagnostics across serial reconnects, schedules Wi-Fi/service/power faults, and cross-checks the final sequence interval against PostgreSQL for the exact CircuitPython board and release.

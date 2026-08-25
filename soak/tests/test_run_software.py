@@ -93,4 +93,4 @@ def test_summary_states_scope_and_observed_results() -> None:
 
     assert "Software fault-injection trial: PASS" in summary
     assert "25,000" in summary
-    assert "not hardware or AWS deployment evidence" in summary
+    assert "Hardware and AWS procedures are tracked separately" in summary

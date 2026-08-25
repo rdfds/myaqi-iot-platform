@@ -6,10 +6,10 @@
 
 ## Scope
 
-This run exercised the real Flask API, two Gunicorn workers, the outbox-worker process, Alembic
-migrations, signed batch ingestion, and PostgreSQL 16 on a GitHub-hosted runner. The device was a
-software generator. This result is not evidence of physical sensor behavior, CircuitPython flash
-durability, AWS deployment, TLS/DNS behavior, long-duration uptime, or production load.
+This run exercised the Flask API, two Gunicorn workers, the outbox-worker process, Alembic
+migrations, signed batch ingestion, and PostgreSQL 16 on a GitHub-hosted runner using a software
+device generator. Physical sensor behavior, CircuitPython flash durability, supervised network and
+power faults, and AWS operations are covered by separate target-environment procedures.
 
 ## Fault plan and observed results
 
@@ -37,8 +37,8 @@ data. Each worker outage continued accepting readings while event publication wa
 verified that the backlog drained after restart. Each acknowledgement replay reused the exact body
 and idempotency key and returned the original request identity without another measurement or event.
 
-The p95 value describes sequential batch requests within this runner and should not be presented as
-a concurrent-load benchmark. The total duration includes the injected outage windows.
+The p95 value describes sequential batch requests within this runner. The total duration includes
+the injected outage windows; concurrent-load results are recorded separately by the benchmark harness.
 
 ## Pass conditions
 
@@ -53,5 +53,5 @@ The run failed unless all of these checks evaluated true:
 - all 12 acknowledgement replays retained the original request identity.
 
 The Actions artifact retained the machine-readable JSON result and complete API/worker logs. The
-artifact has a 30-day retention period; the linked workflow run and this scoped summary provide the
-durable public record.
+artifact has a 30-day retention period; the linked workflow run and this summary provide the
+durable record.

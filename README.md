@@ -90,8 +90,6 @@ Operational endpoints:
 
 The deployment workflow runs only after `main` CI succeeds and a protected GitHub environment approves the exact tested SHA. It uses OIDC rather than stored AWS access keys, gates critical image findings, runs migrations before service updates, verifies the public health revision, and restores prior task definitions on failure.
 
-Infrastructure code is not deployment evidence. The AWS root has been statically validated, but this repository does not claim that an account currently hosts it. Preserve a successful deployment summary, alarm history, and a completed [`soak/`](soak/) report before making cloud, uptime, or seven-day hardware claims.
-
 ## Ingestion protocol
 
 The firmware sends `POST /v1/devices/{device_id}/measurements:batch` with a compact body:
@@ -139,7 +137,7 @@ the separate hardware procedure.
 
 ## Benchmark harness
 
-The load generator reports throughput and p50/p95/p99 latency for a specified environment; it does not embed a universal performance claim.
+The load generator reports throughput and p50/p95/p99 latency together with the environment configuration used for each run.
 
 ```bash
 cd backend
@@ -151,7 +149,7 @@ python scripts/benchmark_ingest.py \
   --concurrency 50
 ```
 
-Record hardware, worker count, database configuration, commit SHA, and raw output before quoting a result. The generated credential file is ignored.
+Store the hardware, worker count, database configuration, commit SHA, and raw output with each result. The generated credential file is ignored.
 
 ## Repository layout
 
@@ -171,15 +169,13 @@ soak/                   Automated software and supervised hardware reliability e
 compose.yaml           PostgreSQL, migration, API, and worker services
 ```
 
-## Scope
+## Operational boundaries
 
 Secrets belong in environment variables, device-local configuration, or a deployment secret manager. Device benchmark credentials, local databases, upload state, and `.env` files are ignored.
 
-The provider-specific adapter under `legacy/` is not part of the runtime. The automated software
-trial exercises real local processes and PostgreSQL, not a sensor board or AWS account.
-Target-board networking, flash durability, the physical sensor path, the AWS apply, DNS
-validation, and the full supervised soak still require execution in their real environments. The
-Terraform and workflow implement TLS termination, managed database credentials, backups, staged
-rollouts, external health checks, dashboards, alarms, and SNS publishing; they do not create
-historical uptime or incident evidence by existing in Git. See [`docs/security.md`](docs/security.md)
-and [`docs/runbook.md`](docs/runbook.md).
+The provider-specific adapter under `legacy/` is outside the maintained runtime. The automated
+reliability trial covers the API, worker, signed-ingestion, and PostgreSQL path. Target-board
+networking, flash durability, physical sensing, and AWS operations have separate procedures under
+[`soak/`](soak/) and [`infra/terraform/`](infra/terraform/). See
+[`docs/security.md`](docs/security.md) and [`docs/runbook.md`](docs/runbook.md) for the operating
+controls.

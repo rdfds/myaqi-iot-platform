@@ -78,7 +78,7 @@ jobs:
           --output artifacts/result.json
           --summary-output artifacts/summary.md
 
-      - name: Publish the scoped trial summary
+      - name: Publish the trial summary
         if: always() && hashFiles('artifacts/summary.md') != ''
         run: sed -n '1,120p' artifacts/summary.md >> "$GITHUB_STEP_SUMMARY"
 

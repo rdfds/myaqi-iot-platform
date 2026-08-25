@@ -72,4 +72,4 @@ python -m soak.verify_results soak/results/2026-08-24-soak-001 \
   --output soak/results/2026-08-24-soak-001/result.json
 ```
 
-`result.json` follows [`results.schema.json`](results.schema.json). Review the raw timestamps, external deployment evidence, and CloudWatch alarm history before publishing a sanitized summary. The database uniqueness constraint prevents duplicate `(device_id, sequence)` rows; the sequence audit establishes that the expected range is also complete.
+`result.json` follows [`results.schema.json`](results.schema.json). Archive the raw timestamps, deployment record, and CloudWatch alarm history with the release-linked summary. The database uniqueness constraint prevents duplicate `(device_id, sequence)` rows; the sequence audit establishes that the expected range is also complete.

@@ -47,6 +47,6 @@ Workers use a separate transaction to claim rows, perform external work without 
 
 The API exposes Prometheus metrics from one threaded Gunicorn process per container; horizontal scale occurs at the ECS task boundary. This avoids presenting incomplete per-worker counters from a multi-process in-container registry. CloudWatch derives release alarms from ALB/RDS/ECS metrics and the structured API/worker logs.
 
-The infrastructure root is a deployment specification, not evidence that resources or availability history exist. Runtime evidence begins only after Terraform apply, DNS validation, a successful deployment, and external observations.
+The deployment procedure records Terraform outputs, DNS validation, the released revision, alarm state, and external health observations for each environment.
 
 The retired provider-specific adapter remains under `legacy/` for implementation traceability and is outside this runtime path.

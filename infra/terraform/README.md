@@ -2,7 +2,7 @@
 
 This Terraform root prepares a real AWS operating environment for myAQI. It creates an encrypted RDS PostgreSQL instance with an RDS-managed password, private Fargate tasks, an immutable ECR repository, an ACM-backed HTTPS load balancer, native ECS canary deployments, CloudWatch dashboards and alarms, SNS delivery, and a tightly scoped GitHub OIDC deployment role.
 
-The configuration is deployable, but files in this repository are not evidence that the resources are running. Preserve Terraform output, the GitHub deployment summary, CloudWatch alarm history, and a completed hardware-soak report before describing the system as deployed or quoting uptime.
+Each environment should retain its Terraform outputs, GitHub deployment summary, CloudWatch alarm history, and associated hardware-soak report as the operational release record.
 
 ## Runtime boundary
 

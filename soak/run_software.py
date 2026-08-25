@@ -281,8 +281,8 @@ def render_markdown_summary(report: dict[str, object]) -> str:
         [
             f"## Software fault-injection trial: {status}",
             "",
-            "> Scope: GitHub-hosted software simulator + PostgreSQL. "
-            "This is not hardware or AWS deployment evidence.",
+            "> Scope: GitHub-hosted software generator, API/worker processes, and PostgreSQL. "
+            "Hardware and AWS procedures are tracked separately.",
             "",
             f"- Revision: `{report['revision']}`",
             f"- Readings: {configuration['readings']:,} in "

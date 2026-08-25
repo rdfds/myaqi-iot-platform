@@ -95,7 +95,7 @@ This separates sensor/flash loss, offline buffering, authentication failure, API
 3. Identify the active and previous application revisions. If the incident began with a deployment and rollback is schema-safe, restore the previous task definitions.
 4. Contain downstream failures by stopping unsafe replays; do not disable authentication or widen the clock-skew window as a first response.
 5. Verify recovery from global health, API revision, worker heartbeat, queue age, dead events, and device sequence completeness.
-6. Preserve sanitized logs and deployment/alarm links, then write contributing factors and concrete follow-up work.
+6. Preserve relevant logs and deployment/alarm links, then write contributing factors and concrete follow-up work.
 
 No incident record should be invented to make the repository look operated. Add a post-incident document only after a real event or a clearly labeled game-day exercise.
 
